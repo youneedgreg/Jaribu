@@ -12,6 +12,9 @@ export const RESULT_MAX_BYTES = 10 * 1024 * 1024;
 // 26 Oct run). Both end up in a pathname, so nothing else gets through.
 const ID = /^[A-Za-z0-9_-]{1,128}$/;
 
+/** True for ids that are safe to use in a pathname. */
+export const isSafeId = (id: string) => ID.test(id);
+
 export class ResultCopyError extends Error {
   constructor(message: string) {
     super(message);
@@ -20,7 +23,7 @@ export class ResultCopyError extends Error {
 }
 
 export function resultPathname(sessionId: string, taskId: string): string {
-  if (!ID.test(sessionId) || !ID.test(taskId)) throw new Error("Invalid session or task id");
+  if (!isSafeId(sessionId) || !isSafeId(taskId)) throw new Error("Invalid session or task id");
   return `sessions/${sessionId}/tryon-${taskId}.jpg`;
 }
 
