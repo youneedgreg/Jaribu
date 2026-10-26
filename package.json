@@ -12,6 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@vercel/blob": "^2.8.2",
     "next": "16.4.3",
     "react": "19.3.0",
     "react-dom": "19.3.0",
@@ -30,5 +31,8 @@
   },
   "engines": {
     "node": ">=24"
+  },
+  "overrides": {
+    "zod": "^4.6.7"
   }
 }
