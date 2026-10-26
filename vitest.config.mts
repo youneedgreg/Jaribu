@@ -8,7 +8,5 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.ts"],
-    // No tests yet; the first ones arrive with the YouCam client. Remove this then.
-    passWithNoTests: true,
   },
 });
