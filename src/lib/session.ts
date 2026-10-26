@@ -54,3 +54,14 @@ export function decodeSession(value: string | undefined, secret: string | undefi
   if (issuedAt > now + 60_000 || now - issuedAt > SESSION_MAX_AGE_MS) return null;
   return { id, issuedAt };
 }
+
+/** Ties a YouCam task to the session that started it, so nobody else can poll it into theirs. */
+export function taskTicket(sessionId: string, taskId: string, secret: string | undefined): string {
+  return sign(`task.${sessionId}.${taskId}`, checkSecret(secret));
+}
+
+export function taskTicketMatches(ticket: string | null | undefined, sessionId: string, taskId: string, secret: string | undefined): boolean {
+  const expected = Buffer.from(taskTicket(sessionId, taskId, secret));
+  const given = Buffer.from(ticket ?? "");
+  return given.length === expected.length && timingSafeEqual(given, expected);
+}

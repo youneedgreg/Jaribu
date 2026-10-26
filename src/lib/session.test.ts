@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decodeSession, encodeSession, newSession, SESSION_MAX_AGE_MS } from "./session";
+import { decodeSession, encodeSession, newSession, SESSION_MAX_AGE_MS, taskTicket, taskTicketMatches } from "./session";
 
 const SECRET = "test-secret-that-is-at-least-32-characters";
 
@@ -46,5 +46,18 @@ describe("session cookie", () => {
   it("refuses to work without a long enough secret", () => {
     expect(() => encodeSession(newSession(), undefined)).toThrow("SESSION_SECRET");
     expect(() => decodeSession("x", "short", 0)).toThrow("SESSION_SECRET");
+  });
+});
+
+describe("task ticket", () => {
+  it("matches only the session and task it was made for", () => {
+    const ticket = taskTicket("session-a", "task-1", SECRET);
+    expect(taskTicketMatches(ticket, "session-a", "task-1", SECRET)).toBe(true);
+    expect(taskTicketMatches(ticket, "session-b", "task-1", SECRET)).toBe(false);
+    expect(taskTicketMatches(ticket, "session-a", "task-2", SECRET)).toBe(false);
+  });
+
+  it.each([null, undefined, "", "short"])("rejects %j", (ticket) => {
+    expect(taskTicketMatches(ticket, "session-a", "task-1", SECRET)).toBe(false);
   });
 });
