@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     if (codeMatches) await grantAccessPass();
     const session = await currentOrNewSession();
     const taskId = await startTryOn(youcam(), selfie, await readWigPhoto(wig));
-    return json({ taskId, ticket: taskTicket(session.id, taskId, process.env.SESSION_SECRET) });
+    return json({ taskId, ticket: taskTicket("hairstyle", session.id, taskId, process.env.SESSION_SECRET) });
   } catch (error) {
     logError("tryon/start", error);
     if (error instanceof InsufficientUnitsError) {

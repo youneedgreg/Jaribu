@@ -15,7 +15,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/tryon/[t
   const session = await currentSession();
   if (!session) return failure(401, "session_ended", "This preview has ended. Please start again.");
   const ticket = request.nextUrl.searchParams.get("ticket");
-  if (!isSafeId(taskId) || !taskTicketMatches(ticket, session.id, taskId, process.env.SESSION_SECRET)) {
+  if (!isSafeId(taskId) || !taskTicketMatches(ticket, "hairstyle", session.id, taskId, process.env.SESSION_SECRET)) {
     return failure(404, "not_found", "We couldn't find this preview. Please start again.");
   }
 

@@ -51,13 +51,19 @@ describe("session cookie", () => {
 
 describe("task ticket", () => {
   it("matches only the session and task it was made for", () => {
-    const ticket = taskTicket("session-a", "task-1", SECRET);
-    expect(taskTicketMatches(ticket, "session-a", "task-1", SECRET)).toBe(true);
-    expect(taskTicketMatches(ticket, "session-b", "task-1", SECRET)).toBe(false);
-    expect(taskTicketMatches(ticket, "session-a", "task-2", SECRET)).toBe(false);
+    const ticket = taskTicket("hairstyle", "session-a", "task-1", SECRET);
+    expect(taskTicketMatches(ticket, "hairstyle", "session-a", "task-1", SECRET)).toBe(true);
+    expect(taskTicketMatches(ticket, "hairstyle", "session-b", "task-1", SECRET)).toBe(false);
+    expect(taskTicketMatches(ticket, "hairstyle", "session-a", "task-2", SECRET)).toBe(false);
+  });
+
+  it("matches only the API it was made for", () => {
+    const ticket = taskTicket("haircolor", "session-a", "task-1", SECRET);
+    expect(taskTicketMatches(ticket, "haircolor", "session-a", "task-1", SECRET)).toBe(true);
+    expect(taskTicketMatches(ticket, "hairstyle", "session-a", "task-1", SECRET)).toBe(false);
   });
 
   it.each([null, undefined, "", "short"])("rejects %j", (ticket) => {
-    expect(taskTicketMatches(ticket, "session-a", "task-1", SECRET)).toBe(false);
+    expect(taskTicketMatches(ticket, "hairstyle", "session-a", "task-1", SECRET)).toBe(false);
   });
 });
