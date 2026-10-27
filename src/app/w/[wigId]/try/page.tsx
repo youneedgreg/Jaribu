@@ -38,7 +38,7 @@ export default async function TryPage({ params }: PageProps<"/w/[wigId]/try">) {
         Your front photo is sent to YouCam to make the preview; YouCam keeps uploaded photos for up to 30 days. The other
         photos stay on this phone. Your result is shown for 24 hours.
       </p>
-      <TryOn wigId={wig.id} wigName={wig.name} />
+      <TryOn wigs={DEMO_SHOP.wigs} firstWigId={wig.id} />
     </main>
   );
 }
