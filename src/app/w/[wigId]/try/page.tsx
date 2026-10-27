@@ -18,8 +18,7 @@ export async function generateMetadata({ params }: PageProps<"/w/[wigId]/try">):
   return wig ? { title: `Try on ${wig.name} · Jaribu`, robots: { index: false } } : {};
 }
 
-// Phase 1 of step D: the shopper uploads a photo. The guided camera capture replaces the
-// upload in phase 2, keeping it as the fallback.
+// Step D: guided capture with YouCam's Camera Kit, with "upload a photo" as the fallback.
 export default async function TryPage({ params }: PageProps<"/w/[wigId]/try">) {
   const wig = findWig((await params).wigId);
   if (!wig) notFound();
@@ -36,8 +35,8 @@ export default async function TryPage({ params }: PageProps<"/w/[wigId]/try">) {
         </div>
       </header>
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Your photo is sent to YouCam to make the preview; YouCam keeps uploaded photos for up to 30 days. Your result is shown
-        for 24 hours.
+        Your front photo is sent to YouCam to make the preview; YouCam keeps uploaded photos for up to 30 days. The other
+        photos stay on this phone. Your result is shown for 24 hours.
       </p>
       <TryOn wigId={wig.id} wigName={wig.name} />
     </main>
