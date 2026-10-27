@@ -22,6 +22,7 @@ export class ResultCopyError extends Error {
   }
 }
 
+/** Colour previews are stored the same way, under their own Hair Color task id. */
 export function resultPathname(sessionId: string, taskId: string): string {
   if (!isSafeId(sessionId) || !isSafeId(taskId)) throw new Error("Invalid session or task id");
   return `sessions/${sessionId}/tryon-${taskId}.jpg`;
