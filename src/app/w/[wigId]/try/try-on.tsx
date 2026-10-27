@@ -3,12 +3,22 @@
 import { useEffect, useRef, useState } from "react";
 import { capture, CameraKitError, hairShots, loadCameraKit, type HairShots, type Shot } from "@/lib/camera-kit/camera-kit";
 import { formatKes, type Wig } from "@/lib/shop/demo";
-import { requestTryOn } from "@/lib/tryon/client";
+import { requestColorway, requestTryOn, type TaskRef, type TryOnProgress } from "@/lib/tryon/client";
 import { BeforeAfter } from "./before-after";
 
 const MAX_SIDE = 1024;
 
-type State = { step: "idle" } | { step: "working"; label: string; detail?: string } | { step: "failed"; message: string };
+type State =
+  | { step: "idle" }
+  | { step: "working"; label: string; detail?: string }
+  /** `retry` repeats what failed; without it, Try again redoes the try-on. */
+  | { step: "failed"; message: string; retry?: () => void };
+
+/** A finished try-on: where to show it, and the task a colour request points back at. */
+interface Result {
+  url: string;
+  task: TaskRef;
+}
 
 /** What the camera took. Only the front shot is sent for now; the checks (step E) use the rest. */
 interface Captures {
@@ -64,13 +74,19 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
   const [selfie, setSelfie] = useState<Selfie | null>(null);
   const [wigId, setWigId] = useState(firstWigId);
   // Finished previews by wig id, so going back to a wig already tried costs nothing.
-  const [results, setResults] = useState<Record<string, string>>({});
+  const [results, setResults] = useState<Record<string, Result>>({});
+  // The same for colours, by "<wig id>/<colorway id>". null = the wig as photographed.
+  const [colorResults, setColorResults] = useState<Record<string, string>>({});
+  const [colorwayId, setColorwayId] = useState<string | null>(null);
   const [captures, setCaptures] = useState<Captures | null>(null);
   const [debug, setDebug] = useState(false);
   const cancelled = useRef(false);
 
   const wig = wigs.find((w) => w.id === wigId) ?? wigs[0];
-  const result = results[wig.id];
+  const result = results[wig.id]?.url;
+  const colorway = wig.colorways.find((c) => c.id === colorwayId) ?? null;
+  // What the slider shows: the chosen colour once it's ready, else the wig as photographed.
+  const shown = (colorway && colorResults[`${wig.id}/${colorway.id}`]) || result;
 
   useEffect(() => {
     cancelled.current = false;
@@ -140,11 +156,13 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
     }
     setSelfie(next);
     setResults({});
+    setColorResults({});
     await tryWig(firstWigId, next, {});
   }
 
   async function tryWig(id: string, photo = selfie, done = results) {
     setWigId(id);
+    setColorwayId(null);
     if (!photo || done[id]) return setState({ step: "idle" });
     const outcome = await requestTryOn(photo.blob, id, {
       isCancelled: () => cancelled.current,
@@ -156,7 +174,7 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
         ),
     });
     if (outcome.ok) {
-      setResults((r) => ({ ...r, [id]: outcome.resultUrl }));
+      setResults((r) => ({ ...r, [id]: { url: outcome.resultUrl, task: outcome.task } }));
       return setState({ step: "idle" });
     }
     if (outcome.code === "cancelled") return;
@@ -164,9 +182,40 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
     setState({ step: "failed", message: outcome.message });
   }
 
+  /** Shows the current wig's try-on in one of its colours (null = as photographed). */
+  async function showColorway(id: string | null) {
+    const tryOn = results[wig.id];
+    const key = `${wig.id}/${id}`;
+    if (!tryOn || id === null || colorResults[key]) {
+      setColorwayId(id);
+      return setState({ step: "idle" });
+    }
+    const previous = colorwayId;
+    setColorwayId(id);
+    const outcome = await requestColorway(tryOn.task, wig.id, id, {
+      isCancelled: () => cancelled.current,
+      onProgress: (p: TryOnProgress) =>
+        setState(
+          p.stage === "starting"
+            ? { step: "working", label: "Getting the colour ready…" }
+            : { step: "working", label: `Colouring the wig… ${p.seconds} s` },
+        ),
+    });
+    if (outcome.ok) {
+      setColorResults((r) => ({ ...r, [key]: outcome.resultUrl }));
+      return setState({ step: "idle" });
+    }
+    if (outcome.code === "cancelled") return;
+    if (outcome.code === "access_code") setNeedsCode(true);
+    setColorwayId(previous);
+    setState({ step: "failed", message: outcome.message, retry: () => void showColorway(id) });
+  }
+
   function startOver() {
     setSelfie(null);
     setResults({});
+    setColorResults({});
+    setColorwayId(null);
     setCaptures(null);
     setWigId(firstWigId);
     setMode("camera");
@@ -216,28 +265,28 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
             <p className="font-medium">{formatKes(wig.priceKes)}</p>
           </div>
 
-          {result ? (
-            <BeforeAfter
-              before={selfie.url}
-              after={result}
-              afterAlt={`You wearing the ${wig.name} wig, preview`}
-              width={selfie.width}
-              height={selfie.height}
-            />
-          ) : (
-            <div className="relative overflow-hidden rounded-md" style={{ aspectRatio: `${selfie.width} / ${selfie.height}` }}>
-              {/* Local object URL: next/image can't optimise it, and shouldn't. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+          <div className="relative overflow-hidden rounded-md" style={{ aspectRatio: `${selfie.width} / ${selfie.height}` }}>
+            {shown ? (
+              <BeforeAfter
+                before={selfie.url}
+                after={shown}
+                afterAlt={`You wearing the ${wig.name} wig${colorway && shown !== result ? ` in ${colorway.name}` : ""}, preview`}
+                width={selfie.width}
+                height={selfie.height}
+              />
+            ) : (
+              // Local object URL: next/image can't optimise it, and shouldn't.
+              // eslint-disable-next-line @next/next/no-img-element
               <img src={selfie.url} alt="Your photo" className="absolute inset-0 h-full w-full object-cover" />
-              {state.step === "working" && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/55 p-4 text-center text-white">
-                  <span aria-hidden className="mb-2 h-8 w-8 animate-spin rounded-full border-4 border-white/30 border-t-white" />
-                  <p className="font-medium">{state.label}</p>
-                  {state.detail && <p className="text-sm text-white/80">{state.detail}</p>}
-                </div>
-              )}
-            </div>
-          )}
+            )}
+            {state.step === "working" && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/55 p-4 text-center text-white">
+                <span aria-hidden className="mb-2 h-8 w-8 animate-spin rounded-full border-4 border-white/30 border-t-white" />
+                <p className="font-medium">{state.label}</p>
+                {state.detail && <p className="text-sm text-white/80">{state.detail}</p>}
+              </div>
+            )}
+          </div>
 
           {result && (
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
@@ -248,12 +297,43 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
             {state.step === "working" ? state.label : result ? `Preview of ${wig.name} ready.` : ""}
           </p>
 
+          {result && (
+            <div className="flex flex-col gap-2">
+              <h3 className="text-sm font-medium">Colour</h3>
+              <ul className="flex flex-wrap gap-2">
+                {[null, ...wig.colorways].map((c) => (
+                  <li key={c?.id ?? "photo"}>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      aria-pressed={(c?.id ?? null) === colorwayId}
+                      onClick={() => void showColorway(c?.id ?? null)}
+                      className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm disabled:opacity-50 ${
+                        (c?.id ?? null) === colorwayId
+                          ? "border-zinc-900 ring-1 ring-zinc-900 dark:border-zinc-100 dark:ring-zinc-100"
+                          : "border-zinc-300 dark:border-zinc-700"
+                      }`}
+                    >
+                      {c && <span aria-hidden className="h-4 w-4 rounded-full border border-black/10" style={{ backgroundColor: c.hex }} />}
+                      {c ? `${c.code} ${c.name}` : "As photographed"}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {colorway && (
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  Colours look different on every screen. Ask the seller for a daylight photo of {colorway.code} before you order.
+                </p>
+              )}
+            </div>
+          )}
+
           {state.step === "failed" && (
             <div className="flex flex-col gap-2">
               <p role="alert" className="text-sm text-red-700 dark:text-red-400">
                 {state.message}
               </p>
-              <button type="button" className={button} onClick={() => void tryWig(wig.id)}>
+              <button type="button" className={button} onClick={state.retry ?? (() => void tryWig(wig.id))}>
                 Try again
               </button>
             </div>
@@ -341,7 +421,7 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
       {/* Camera Kit draws its own UI here; React must leave this div's children alone. */}
       <div id="YMK-module" />
 
-      {debug && captures && <CaptureDetails captures={captures} result={result} />}
+      {debug && captures && <CaptureDetails captures={captures} result={shown} />}
     </div>
   );
 }
