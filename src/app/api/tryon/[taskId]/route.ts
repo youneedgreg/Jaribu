@@ -27,6 +27,10 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/tryon/[t
     return json(status);
   } catch (error) {
     logError("tryon/poll", error);
+    // Asking again would fetch the same unusable file: stop now instead of polling for minutes.
+    if (error instanceof ResultCopyError && error.permanent) {
+      return failure(500, "result_unusable", "We couldn't save this preview. Please try again.");
+    }
     // The task may have finished (and been paid for): asking again fetches a fresh link to copy.
     const message = error instanceof ResultCopyError ? "We couldn't save the preview yet." : "We couldn't check on the preview.";
     return failure(502, "poll_failed", `${message} Trying again…`);
