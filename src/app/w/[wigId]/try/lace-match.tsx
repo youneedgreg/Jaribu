@@ -1,7 +1,7 @@
 "use client";
 
 import { matchLace, type LaceShade } from "@/lib/checks/lace";
-import { centerCrop } from "@/lib/images/crop";
+import { centerCrop, fitWithin } from "@/lib/images/crop";
 
 /** The skin reading belongs to the photos, not the wig, so the try-on screen keeps it. */
 export type ToneState =
@@ -10,14 +10,15 @@ export type ToneState =
   | { step: "done"; skinHex: string }
   | { step: "failed"; message: string };
 
-/** The middle of the close-up as a JPG, so the face is wide enough for Facial Color Tones. */
+/** The middle of the close-up as a JPG of at most 1080 px, so the face is wide enough for Facial Color Tones. */
 export async function toToneJpeg(photo: Blob): Promise<Blob> {
   const bitmap = await createImageBitmap(photo, { imageOrientation: "from-image" });
   const crop = centerCrop(bitmap.width, bitmap.height);
+  const size = fitWithin(crop.width, crop.height);
   const canvas = document.createElement("canvas");
-  canvas.width = crop.width;
-  canvas.height = crop.height;
-  canvas.getContext("2d")!.drawImage(bitmap, crop.x, crop.y, crop.width, crop.height, 0, 0, crop.width, crop.height);
+  canvas.width = size.width;
+  canvas.height = size.height;
+  canvas.getContext("2d")!.drawImage(bitmap, crop.x, crop.y, crop.width, crop.height, 0, 0, size.width, size.height);
   bitmap.close();
   return new Promise<Blob>((resolve, reject) =>
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Couldn't read that photo."))), "image/jpeg", 0.92),

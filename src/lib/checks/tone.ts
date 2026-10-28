@@ -1,4 +1,4 @@
-import { TONE_MIN_SIDE } from "../images/crop";
+import { TONE_MAX_SIDE, TONE_MIN_SIDE } from "../images/crop";
 import { jpegSize } from "../images/jpeg";
 import type { ResultStore } from "../results/store";
 import { PHOTO_MAX_BYTES } from "../tryon/tryon";
@@ -9,9 +9,6 @@ import type { YouCamClient } from "../youcam/client";
 // It costs 20 units, so each session gets one task: the record in Blob says whether it has
 // started, and a repeat request gets that record back instead of a new task. Only the skin
 // colour is kept, not the eye, lip, eyebrow or hair colours YouCam also returns.
-
-/** Facial Color Tones takes up to 4096 px, but anything over 1080 is shrunk before analysis. */
-export const TONE_MAX_SIDE = 1080;
 
 export class TonePhotoError extends Error {
   constructor(message: string) {
