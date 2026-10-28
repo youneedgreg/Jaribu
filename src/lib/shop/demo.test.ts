@@ -40,6 +40,13 @@ describe("demo shop", () => {
     }
   });
 
+  it("offers lace shades with colours the lace match can read", () => {
+    for (const wig of DEMO_SHOP.wigs) {
+      expect(wig.laceShades.length).toBeGreaterThan(0);
+      for (const shade of wig.laceShades) expect(shade.hex).toMatch(/^#[0-9a-f]{6}$/);
+    }
+  });
+
   it("finds a colour only among the wig's own", () => {
     const wig = findWig("body-wave")!;
     expect(findColorway(wig, "30")?.code).toBe("#30");

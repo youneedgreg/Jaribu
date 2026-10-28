@@ -1,3 +1,5 @@
+import type { LaceShade } from "../checks/lace";
+
 // A hard-coded demo shop until sellers can list their own wigs (step F). The photos are from
 // Unsplash (https://unsplash.com/license): free to use, but with no model releases, so the
 // people in them are never presented as sellers, customers or anyone endorsing Jaribu.
@@ -23,6 +25,14 @@ const COLORS = {
   "613": { id: "613", code: "613", name: "Platinum blonde", hex: "#dcc49a" },
 } satisfies Record<string, Colorway>;
 
+// Placeholder lace shades, like the colours: hex values by eye for how each lace looks over
+// skin. Transparent/HD lace isn't listed because it has no colour of its own to compare.
+const LACE = {
+  light: { id: "light-brown", name: "Light brown lace", hex: "#b98a65" },
+  medium: { id: "medium-brown", name: "Medium brown lace", hex: "#8d5f40" },
+  dark: { id: "dark-brown", name: "Dark brown lace", hex: "#5a3b2a" },
+} satisfies Record<string, LaceShade>;
+
 export interface Wig {
   id: string;
   name: string;
@@ -35,6 +45,7 @@ export interface Wig {
   photoHeight: number;
   credit: { name: string; url: string };
   colorways: Colorway[];
+  laceShades: LaceShade[];
 }
 
 export interface Shop {
@@ -58,6 +69,7 @@ export const DEMO_SHOP: Shop = {
       photoHeight: 1024,
       credit: { name: "Júlia Costa", url: "https://unsplash.com/photos/OHSzIUy01Tk" },
       colorways: [COLORS["1b"], COLORS["99j"], COLORS["613"]],
+      laceShades: [LACE.light, LACE.medium, LACE.dark],
     },
     {
       id: "body-wave",
@@ -70,6 +82,7 @@ export const DEMO_SHOP: Shop = {
       photoHeight: 1024,
       credit: { name: "Dellon Thomas", url: "https://unsplash.com/photos/Fp8uh-Ls4ic" },
       colorways: [COLORS["1b"], COLORS["30"], COLORS["27"]],
+      laceShades: [LACE.light, LACE.medium],
     },
     {
       id: "curly-afro",
@@ -82,6 +95,7 @@ export const DEMO_SHOP: Shop = {
       photoHeight: 1024,
       credit: { name: "Good Faces", url: "https://unsplash.com/photos/xmSWVeGEnJw" },
       colorways: [COLORS["1b"], COLORS["4"], COLORS["30"]],
+      laceShades: [LACE.medium, LACE.dark],
     },
     {
       id: "straight-bob",
@@ -94,6 +108,7 @@ export const DEMO_SHOP: Shop = {
       photoHeight: 1024,
       credit: { name: "Victor Eke", url: "https://unsplash.com/photos/1aqSXQQF_Pw" },
       colorways: [COLORS["1b"], COLORS["99j"], COLORS["27"]],
+      laceShades: [LACE.light, LACE.medium, LACE.dark],
     },
   ],
 };
