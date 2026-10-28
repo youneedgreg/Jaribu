@@ -2,6 +2,7 @@
 
 import { matchLace, type LaceShade } from "@/lib/checks/lace";
 import { centerCrop, fitWithin } from "@/lib/images/crop";
+import { Swatch } from "./swatch";
 
 /** The skin reading belongs to the photos, not the wig, so the try-on screen keeps it. */
 export type ToneState =
@@ -24,10 +25,6 @@ export async function toToneJpeg(photo: Blob): Promise<Blob> {
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Couldn't read that photo."))), "image/jpeg", 0.92),
   );
 }
-
-const Swatch = ({ hex }: { hex: string }) => (
-  <span aria-hidden className="inline-block h-5 w-5 shrink-0 rounded-full border border-black/10" style={{ backgroundColor: hex }} />
-);
 
 /**
  * Which of the wig's lace shades is nearest the shopper's skin. The reading runs only when the

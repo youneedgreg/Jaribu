@@ -6,6 +6,7 @@ import { formatKes, type Wig } from "@/lib/shop/demo";
 import { requestColorway, requestTone, requestTryOn, type TaskRef, type TryOnProgress } from "@/lib/tryon/client";
 import { BeforeAfter } from "./before-after";
 import { LaceMatch, toToneJpeg, type ToneState } from "./lace-match";
+import { Swatch } from "./swatch";
 
 const MAX_SIDE = 1024;
 
@@ -340,7 +341,7 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
                           : "border-zinc-300 dark:border-zinc-700"
                       }`}
                     >
-                      {c && <span aria-hidden className="h-4 w-4 rounded-full border border-black/10" style={{ backgroundColor: c.hex }} />}
+                      {c && <Swatch hex={c.hex} className="h-4 w-4" />}
                       {c ? `${c.code} ${c.name}` : "As photographed"}
                     </button>
                   </li>
