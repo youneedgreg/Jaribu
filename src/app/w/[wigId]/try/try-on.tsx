@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { capture, CameraKitError, hairShots, loadCameraKit, type HairShots, type Shot } from "@/lib/camera-kit/camera-kit";
+import { lightness } from "@/lib/checks/lace";
 import { formatKes, type Wig } from "@/lib/shop/demo";
 import { requestColorway, requestTone, requestTryOn, type TaskRef, type TryOnProgress } from "@/lib/tryon/client";
 import { BeforeAfter } from "./before-after";
@@ -458,13 +459,13 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
       {/* Camera Kit draws its own UI here; React must leave this div's children alone. */}
       <div id="YMK-module" />
 
-      {debug && captures && <CaptureDetails captures={captures} result={shown} />}
+      {debug && captures && <CaptureDetails captures={captures} result={shown} skinHex={tone.step === "done" ? tone.skinHex : undefined} />}
     </div>
   );
 }
 
 /** Testing aid (?debug): what Camera Kit returned, measured from the photos themselves. */
-function CaptureDetails({ captures, result }: { captures: Captures; result: string | undefined }) {
+function CaptureDetails({ captures, result, skinHex }: { captures: Captures; result: string | undefined; skinHex?: string }) {
   const [rows, setRows] = useState<{ label: string; url: string; text: string }[]>([]);
   const [resultSize, setResultSize] = useState<string | null>(null);
 
@@ -515,6 +516,12 @@ function CaptureDetails({ captures, result }: { captures: Captures; result: stri
           />
         </p>
       )}
+      {skinHex && (
+        <p>
+          Skin reading: {skinHex} (lightness {lightness(skinHex).toFixed(1)})
+        </p>
+      )}
+      <SwatchCheck colours={[["1B off black", "#1c1613"], ...(skinHex ? [["Skin reading", skinHex] as [string, string]] : [])]} />
       {rows.map((row) => (
         <figure key={row.label} className="flex flex-col gap-1">
           <figcaption>{row.text}</figcaption>
@@ -523,5 +530,62 @@ function CaptureDetails({ captures, result }: { captures: Captures; result: stri
         </figure>
       ))}
     </section>
+  );
+}
+
+/**
+ * Testing aid (?debug): the same colour drawn four ways, to see which ones a browser's forced
+ * dark mode leaves alone (Samsung Internet recolours CSS colours).
+ */
+function SwatchCheck({ colours }: { colours: [string, string][] }) {
+  const box = "inline-block h-6 w-6 border border-black/10";
+  return (
+    <table className="text-left">
+      <thead>
+        <tr>
+          <th className="pr-2 font-normal">Colour</th>
+          <th className="pr-2 font-normal">CSS</th>
+          <th className="pr-2 font-normal">PNG</th>
+          <th className="pr-2 font-normal">SVG</th>
+          <th className="font-normal">Canvas</th>
+        </tr>
+      </thead>
+      <tbody>
+        {colours.map(([label, hex]) => (
+          <tr key={label}>
+            <td className="pr-2">
+              {label} {hex}
+            </td>
+            <td className="pr-2">
+              <span className={box} style={{ backgroundColor: hex }} />
+            </td>
+            <td className="pr-2">
+              <Swatch hex={hex} className="h-6 w-6" />
+            </td>
+            <td className="pr-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                alt=""
+                className={box}
+                src={`data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect width="1" height="1" fill="${hex}"/></svg>`)}`}
+              />
+            </td>
+            <td>
+              <canvas
+                width={1}
+                height={1}
+                className={box}
+                ref={(canvas) => {
+                  const g = canvas?.getContext("2d");
+                  if (!g) return;
+                  g.fillStyle = hex;
+                  g.fillRect(0, 0, 1, 1);
+                }}
+              />
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
