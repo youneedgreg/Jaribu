@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { createResultStore, RESULT_MAX_AGE_MS, RESULT_MAX_BYTES, ResultCopyError, resultPathname, type BlobOps } from "./store";
+import { createResultStore, imageType, RESULT_MAX_AGE_MS, RESULT_MAX_BYTES, ResultCopyError, resultPathname, type BlobOps } from "./store";
 
 const JPG = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
+const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d]);
 const SESSION = "s3ss10n_Id-abc";
 const TASK = "task-123";
 
@@ -65,6 +66,22 @@ describe("save", () => {
     expect(stored.get(pathname)?.bytes).toEqual(JPG);
   });
 
+  it("stores Hair Color's PNG even though its link says binary/octet-stream", async () => {
+    const { blob, puts, stored } = fakeBlob({ now: 0 });
+    const { fetch } = fakeFetch(() => new Response(PNG, { headers: { "content-type": "binary/octet-stream" } }));
+    const store = createResultStore({ blob, fetch });
+    const pathname = await store.save(SESSION, TASK, "https://results.example.test/colorway");
+    expect(puts[0].options).toMatchObject({ contentType: "image/png" });
+    expect(stored.get(pathname)?.bytes).toEqual(PNG);
+  });
+
+  it("trusts the bytes over a wrong header", async () => {
+    const { blob, puts } = fakeBlob({ now: 0 });
+    const { fetch } = fakeFetch(() => new Response(JPG, { headers: { "content-type": "image/png" } }));
+    await createResultStore({ blob, fetch }).save(SESSION, TASK, "https://results.example.test/tryon.jpg");
+    expect(puts[0].options).toMatchObject({ contentType: "image/jpeg" });
+  });
+
   it("refuses a non-https link", async () => {
     const { blob } = fakeBlob({ now: 0 });
     const { fetch, urls } = fakeFetch(jpgResponse);
@@ -73,19 +90,19 @@ describe("save", () => {
     expect(urls).toEqual([]);
   });
 
-  it("fails when the link has expired", async () => {
+  it("fails when the link has expired, in a way worth retrying (a new poll gives a new link)", async () => {
     const { blob, puts } = fakeBlob({ now: 0 });
     const { fetch } = fakeFetch(() => new Response("AccessDenied", { status: 403 }));
     const store = createResultStore({ blob, fetch });
-    await expect(store.save(SESSION, TASK, "https://results.example.test/tryon.jpg")).rejects.toThrow("403");
+    await expect(store.save(SESSION, TASK, "https://results.example.test/tryon.jpg")).rejects.toMatchObject({ message: expect.stringContaining("403"), permanent: false });
     expect(puts).toEqual([]);
   });
 
-  it("refuses something that isn't an image", async () => {
+  it("refuses something that isn't an image, for good, even if labelled as one", async () => {
     const { blob, puts } = fakeBlob({ now: 0 });
-    const { fetch } = fakeFetch(() => new Response("<html>", { headers: { "content-type": "text/html" } }));
+    const { fetch } = fakeFetch(() => new Response("<html>", { headers: { "content-type": "image/jpeg" } }));
     const store = createResultStore({ blob, fetch });
-    await expect(store.save(SESSION, TASK, "https://results.example.test/tryon.jpg")).rejects.toThrow("not an image");
+    await expect(store.save(SESSION, TASK, "https://results.example.test/tryon.jpg")).rejects.toMatchObject({ message: "Result is not an image", permanent: true });
     expect(puts).toEqual([]);
   });
 
@@ -96,6 +113,17 @@ describe("save", () => {
     const store = createResultStore({ blob, fetch });
     await expect(store.save(SESSION, TASK, "https://results.example.test/tryon.jpg")).rejects.toThrow("too large");
     expect(puts).toEqual([]);
+  });
+});
+
+describe("imageType", () => {
+  it("reads JPEG, PNG and WebP signatures and nothing else", () => {
+    expect(imageType(JPG)).toBe("image/jpeg");
+    expect(imageType(PNG)).toBe("image/png");
+    expect(imageType(new TextEncoder().encode("RIFF\0\0\0\0WEBPVP8 "))).toBe("image/webp");
+    expect(imageType(new TextEncoder().encode("RIFF\0\0\0\0WAVEfmt "))).toBeNull();
+    expect(imageType(new TextEncoder().encode("<html>"))).toBeNull();
+    expect(imageType(new Uint8Array())).toBeNull();
   });
 });
 
