@@ -8,7 +8,8 @@ import { Swatch } from "./swatch";
 export type ToneState =
   | { step: "idle" }
   | { step: "working"; label: string }
-  | { step: "done"; skinHex: string }
+  /** `earlier`: read from the session's first close-up, not the current photos. */
+  | { step: "done"; skinHex: string; earlier: boolean }
   | { step: "failed"; message: string };
 
 /** The middle of the close-up as a JPG of at most 1080 px, so the face is wide enough for Facial Color Tones. */
@@ -77,8 +78,11 @@ export function LaceMatch({
         match && (
           <>
             <p className="flex items-center gap-2 text-sm">
-              <Swatch hex={tone.skinHex} /> Your skin in the close-up
+              <Swatch hex={tone.skinHex} /> {tone.earlier ? "Your skin in your first close-up" : "Your skin in the close-up"}
             </p>
+            {tone.earlier && (
+              <p className={muted}>We read skin tone once every 24 hours, so this comes from your first close-up, not your new photos.</p>
+            )}
             {match.verdict === "no_shades" ? (
               <p className="text-sm">This wig doesn&apos;t list its lace shades. Ask the seller which ones they have.</p>
             ) : (

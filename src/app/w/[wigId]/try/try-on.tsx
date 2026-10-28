@@ -232,7 +232,7 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
       onProgress: (p) =>
         setTone({ step: "working", label: p.stage === "starting" ? "Sending the close-up…" : `Reading your skin tone… ${p.seconds} s` }),
     });
-    if (outcome.ok) return setTone({ step: "done", skinHex: outcome.skinHex });
+    if (outcome.ok) return setTone({ step: "done", skinHex: outcome.skinHex, earlier: outcome.earlier });
     if (outcome.code === "cancelled") return;
     if (outcome.code === "access_code") setNeedsCode(true);
     setTone({ step: "failed", message: outcome.message });

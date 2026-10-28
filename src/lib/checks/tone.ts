@@ -39,6 +39,9 @@ export type ToneStatus =
   | { status: "success"; skinHex: string }
   | { status: "error"; code: string | null; message: string };
 
+/** `earlier`: the session already had a task, so this answer is about an earlier close-up, not the one just sent. */
+export type ToneStart = ToneStatus & { earlier?: true };
+
 // Placeholder wording until step G; these codes say exactly what to change.
 function toneMessage(code: string | null): string {
   switch (code) {
@@ -86,11 +89,11 @@ async function current(records: Records, sessionId: string): Promise<ToneRecord 
 
 /**
  * Starts the session's one tone task, unless it already has one running or done: then its
- * status comes back and nothing is spent. A failed task (free) can be replaced.
+ * status comes back marked `earlier` and nothing is spent. A failed task (free) can be replaced.
  */
-export async function startTone(client: Client, records: Records, sessionId: string, photo: Uint8Array<ArrayBuffer>): Promise<ToneStatus> {
+export async function startTone(client: Client, records: Records, sessionId: string, photo: Uint8Array<ArrayBuffer>): Promise<ToneStart> {
   const existing = await current(records, sessionId);
-  if (existing && existing.status !== "error") return statusOf(existing);
+  if (existing && existing.status !== "error") return { ...statusOf(existing), earlier: true };
   checkTonePhoto(photo);
   await client.ensureUnits(TASK_APIS.tone.units);
   const fileId = await client.uploadFile({ bytes: photo, fileName: "closeup.jpg", contentType: "image/jpg" });

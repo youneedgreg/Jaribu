@@ -79,7 +79,7 @@ describe("startTone", () => {
     await pollTone(client, records, "s1");
     calls.length = 0;
 
-    expect(await startTone(client, records, "s1", closeUp)).toEqual({ status: "success", skinHex: "#614633" });
+    expect(await startTone(client, records, "s1", closeUp)).toEqual({ status: "success", skinHex: "#614633", earlier: true });
     expect(calls).toEqual([]);
   });
 
@@ -87,7 +87,7 @@ describe("startTone", () => {
     const { client, records, calls } = fakes();
     await startTone(client, records, "s1", closeUp);
     calls.length = 0;
-    expect(await startTone(client, records, "s1", closeUp)).toEqual({ status: "running" });
+    expect(await startTone(client, records, "s1", closeUp)).toEqual({ status: "running", earlier: true });
     expect(calls).toEqual([]);
   });
 

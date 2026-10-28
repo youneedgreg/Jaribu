@@ -9,7 +9,8 @@ import { youcam } from "@/lib/youcam/server";
 
 // The skin-tone reading for the lace match, one per session (20 units). POST a multipart
 // `photo` (the cropped close-up) after the try-on has started the session; then GET every 3 s
-// until it succeeds or fails. A second POST in the same session returns the first one's status.
+// until it succeeds or fails. A second POST in the same session returns the first one's status,
+// marked `earlier: true` so the screen can say the reading isn't from the new close-up.
 
 export async function POST(request: Request) {
   const session = await currentSession();

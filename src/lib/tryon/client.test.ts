@@ -129,16 +129,24 @@ describe("requestTone", () => {
       [200, { status: "running" }],
       [200, { status: "success", skinHex: "#614633" }],
     ]);
-    expect(await requestTone(closeUp, deps)).toEqual({ ok: true, skinHex: "#614633" });
+    expect(await requestTone(closeUp, deps)).toEqual({ ok: true, skinHex: "#614633", earlier: false });
     expect(requests[0]).toMatchObject({ url: "/api/tone", method: "POST" });
     expect((requests[0].form?.get("photo") as File).name).toBe("closeup.jpg");
     expect(requests.slice(1).map((r) => r.url)).toEqual(["/api/tone", "/api/tone"]);
   });
 
-  it("stops at once when the session already has a reading", async () => {
-    const { deps, requests } = fakeServer([[200, { status: "success", skinHex: "#614633" }]]);
-    expect(await requestTone(closeUp, deps)).toEqual({ ok: true, skinHex: "#614633" });
+  it("stops at once when the session already has a reading, and says it's from earlier", async () => {
+    const { deps, requests } = fakeServer([[200, { status: "success", skinHex: "#614633", earlier: true }]]);
+    expect(await requestTone(closeUp, deps)).toEqual({ ok: true, skinHex: "#614633", earlier: true });
     expect(requests).toHaveLength(1);
+  });
+
+  it("still says it's from earlier when the session's first task was running", async () => {
+    const { deps } = fakeServer([
+      [200, { status: "running", earlier: true }],
+      [200, { status: "success", skinHex: "#614633" }],
+    ]);
+    expect(await requestTone(closeUp, deps)).toEqual({ ok: true, skinHex: "#614633", earlier: true });
   });
 
   it("passes on what to change when the reading fails", async () => {

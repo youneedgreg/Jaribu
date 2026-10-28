@@ -17,7 +17,8 @@ export interface TaskRef {
 
 type Failure = { ok: false; code: string; message: string };
 
-export type ToneOutcome = { ok: true; skinHex: string } | Failure;
+/** `earlier`: the session's reading came from an earlier close-up, not the one just sent. */
+export type ToneOutcome = { ok: true; skinHex: string; earlier: boolean } | Failure;
 
 export type TryOnOutcome =
   /** `task` is what a colour request needs to point back at this result. */
@@ -65,7 +66,7 @@ export async function requestTone(closeUp: Blob, deps: TryOnDeps = {}): Promise<
   const body = new FormData();
   body.set("photo", closeUp, "closeup.jpg");
   const outcome = await runTask((fetchFn) => fetchFn("/api/tone", { method: "POST", body }), () => "/api/tone", deps);
-  return outcome.ok ? { ok: true, skinHex: outcome.body?.skinHex ?? "" } : outcome;
+  return outcome.ok ? { ok: true, skinHex: outcome.body?.skinHex ?? "", earlier: outcome.start?.earlier === true } : outcome;
 }
 
 const taskPollUrl = (query: string) => (start: TaskRef) =>
@@ -78,6 +79,7 @@ type Body = {
   message?: string;
   resultUrl?: string;
   skinHex?: string;
+  earlier?: boolean;
   taskId?: string;
   ticket?: string;
 } | null;
