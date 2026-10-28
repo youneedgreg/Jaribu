@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GIVE_UP_MS, POLL_MS, requestColorway, requestTryOn, type TryOnProgress } from "./client";
+import { GIVE_UP_MS, POLL_MS, requestColorway, requestTone, requestTryOn, type TryOnProgress } from "./client";
 
 // Answers fetch from a queue of [status, body] pairs and records each request.
 function fakeServer(answers: [number, unknown][]) {
@@ -117,5 +117,36 @@ describe("requestColorway", () => {
       code: "no_colorway",
       message: "This wig doesn't come in that colour.",
     });
+  });
+});
+
+describe("requestTone", () => {
+  const closeUp = new Blob(["jpeg"], { type: "image/jpeg" });
+
+  it("sends the close-up, then polls the session's tone reading", async () => {
+    const { deps, requests } = fakeServer([
+      [200, { status: "running" }],
+      [200, { status: "running" }],
+      [200, { status: "success", skinHex: "#614633" }],
+    ]);
+    expect(await requestTone(closeUp, deps)).toEqual({ ok: true, skinHex: "#614633" });
+    expect(requests[0]).toMatchObject({ url: "/api/tone", method: "POST" });
+    expect((requests[0].form?.get("photo") as File).name).toBe("closeup.jpg");
+    expect(requests.slice(1).map((r) => r.url)).toEqual(["/api/tone", "/api/tone"]);
+  });
+
+  it("stops at once when the session already has a reading", async () => {
+    const { deps, requests } = fakeServer([[200, { status: "success", skinHex: "#614633" }]]);
+    expect(await requestTone(closeUp, deps)).toEqual({ ok: true, skinHex: "#614633" });
+    expect(requests).toHaveLength(1);
+  });
+
+  it("passes on what to change when the reading fails", async () => {
+    const message = "Your face was too small in the close-up. Hold the phone a little closer and take the photos again.";
+    const { deps } = fakeServer([
+      [200, { status: "running" }],
+      [200, { status: "error", code: "error_face_position_too_small", message }],
+    ]);
+    expect(await requestTone(closeUp, deps)).toEqual({ ok: false, code: "error_face_position_too_small", message });
   });
 });

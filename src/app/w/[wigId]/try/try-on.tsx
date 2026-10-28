@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { capture, CameraKitError, hairShots, loadCameraKit, type HairShots, type Shot } from "@/lib/camera-kit/camera-kit";
 import { formatKes, type Wig } from "@/lib/shop/demo";
-import { requestColorway, requestTryOn, type TaskRef, type TryOnProgress } from "@/lib/tryon/client";
+import { requestColorway, requestTone, requestTryOn, type TaskRef, type TryOnProgress } from "@/lib/tryon/client";
 import { BeforeAfter } from "./before-after";
+import { LaceMatch, toToneJpeg, type ToneState } from "./lace-match";
 
 const MAX_SIDE = 1024;
 
@@ -20,7 +21,7 @@ interface Result {
   task: TaskRef;
 }
 
-/** What the camera took. Only the front shot is sent for now; the checks (step E) use the rest. */
+/** What the camera took. The front shot makes the preview; the close-up feeds the lace match. */
 interface Captures {
   hair: HairShots;
   tone: Shot | null;
@@ -78,6 +79,7 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
   // The same for colours, by "<wig id>/<colorway id>". null = the wig as photographed.
   const [colorResults, setColorResults] = useState<Record<string, string>>({});
   const [colorwayId, setColorwayId] = useState<string | null>(null);
+  const [tone, setTone] = useState<ToneState>({ step: "idle" });
   const [captures, setCaptures] = useState<Captures | null>(null);
   const [debug, setDebug] = useState(false);
   const cancelled = useRef(false);
@@ -157,6 +159,7 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
     setSelfie(next);
     setResults({});
     setColorResults({});
+    setTone({ step: "idle" });
     await tryWig(firstWigId, next, {});
   }
 
@@ -211,11 +214,34 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
     setState({ step: "failed", message: outcome.message, retry: () => void showColorway(id) });
   }
 
+  /** Reads the skin tone from the close-up for the lace match (20 units, once per session). */
+  async function checkLace() {
+    const closeUp = captures?.tone?.image;
+    if (!closeUp) return;
+    let photo: Blob;
+    try {
+      setTone({ step: "working", label: "Preparing the close-up…" });
+      photo = await toToneJpeg(closeUp);
+    } catch {
+      return setTone({ step: "failed", message: "We couldn't read the close-up photo. Take the photos again." });
+    }
+    const outcome = await requestTone(photo, {
+      isCancelled: () => cancelled.current,
+      onProgress: (p) =>
+        setTone({ step: "working", label: p.stage === "starting" ? "Sending the close-up…" : `Reading your skin tone… ${p.seconds} s` }),
+    });
+    if (outcome.ok) return setTone({ step: "done", skinHex: outcome.skinHex });
+    if (outcome.code === "cancelled") return;
+    if (outcome.code === "access_code") setNeedsCode(true);
+    setTone({ step: "failed", message: outcome.message });
+  }
+
   function startOver() {
     setSelfie(null);
     setResults({});
     setColorResults({});
     setColorwayId(null);
+    setTone({ step: "idle" });
     setCaptures(null);
     setWigId(firstWigId);
     setMode("camera");
@@ -326,6 +352,16 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
                 </p>
               )}
             </div>
+          )}
+
+          {result && (
+            <LaceMatch
+              shades={wig.laceShades}
+              hasCloseUp={Boolean(captures?.tone)}
+              tone={tone}
+              onCheck={() => void checkLace()}
+              disabled={busy || tone.step === "working"}
+            />
           )}
 
           {state.step === "failed" && (
