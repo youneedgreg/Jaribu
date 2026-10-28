@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createResultStore, imageType, RESULT_MAX_AGE_MS, RESULT_MAX_BYTES, ResultCopyError, resultPathname, type BlobOps } from "./store";
+import { createResultStore, imageType, recordPathname, RESULT_MAX_AGE_MS, RESULT_MAX_BYTES, ResultCopyError, resultPathname, type BlobOps } from "./store";
 
 const JPG = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d]);
@@ -159,5 +159,33 @@ describe("open", () => {
     expect((await store.open(SESSION, TASK)).status).toBe("ok");
     clock.now = RESULT_MAX_AGE_MS + 1;
     expect(await store.open(SESSION, TASK)).toEqual({ status: "expired" });
+  });
+});
+
+describe("records", () => {
+  it("keeps a JSON record per session, replaced on each save", async () => {
+    const clock = { now: 0 };
+    const { blob, puts } = fakeBlob(clock);
+    const store = createResultStore({ blob, fetch: fakeFetch(jpgResponse).fetch, now: () => clock.now });
+    await store.saveRecord(SESSION, "tone", { status: "running", taskId: "t1" });
+    await store.saveRecord(SESSION, "tone", { status: "success", taskId: "t1", skinHex: "#614633" });
+
+    expect(puts.map((p) => p.pathname)).toEqual([recordPathname(SESSION, "tone"), recordPathname(SESSION, "tone")]);
+    expect(puts[0].options).toMatchObject({ access: "private", contentType: "application/json" });
+    expect(await store.openRecord(SESSION, "tone")).toEqual({ status: "success", taskId: "t1", skinHex: "#614633" });
+    expect(await store.openRecord("someone-else", "tone")).toBeNull();
+  });
+
+  it("forgets a record after 24 hours", async () => {
+    const clock = { now: 0 };
+    const { blob } = fakeBlob(clock);
+    const store = createResultStore({ blob, fetch: fakeFetch(jpgResponse).fetch, now: () => clock.now });
+    await store.saveRecord(SESSION, "tone", { status: "running", taskId: "t1" });
+    clock.now = RESULT_MAX_AGE_MS + 1;
+    expect(await store.openRecord(SESSION, "tone")).toBeNull();
+  });
+
+  it("refuses an unsafe session id", () => {
+    expect(() => recordPathname("../x", "tone")).toThrow();
   });
 });

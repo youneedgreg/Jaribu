@@ -46,6 +46,14 @@ export function resultPathname(sessionId: string, taskId: string): string {
   return `sessions/${sessionId}/tryon-${taskId}.jpg`;
 }
 
+/** Small per-session records kept beside the results, such as the skin-tone reading. */
+export type RecordName = "tone";
+
+export function recordPathname(sessionId: string, name: RecordName): string {
+  if (!isSafeId(sessionId)) throw new Error("Invalid session id");
+  return `sessions/${sessionId}/${name}.json`;
+}
+
 /** The subset of @vercel/blob this module uses, so tests can pass fakes. */
 export interface BlobOps {
   put(pathname: string, body: Buffer, options: { access: "private"; contentType: string; allowOverwrite: true; addRandomSuffix: false }): Promise<{ pathname: string }>;
@@ -90,7 +98,28 @@ export function createResultStore({ blob, fetch: doFetch = fetch, now = Date.now
     return { status: "ok", stream: found.stream, contentType: found.blob.contentType ?? "image/jpeg", size: found.blob.size };
   }
 
-  return { save, open };
+  /** Stores a small JSON record for the session, replacing any earlier one. */
+  async function saveRecord(sessionId: string, name: RecordName, data: unknown): Promise<void> {
+    const body = Buffer.from(JSON.stringify(data));
+    await blob.put(recordPathname(sessionId, name), body, { access: "private", contentType: "application/json", allowOverwrite: true, addRandomSuffix: false });
+  }
+
+  /** The session's record, or null if there's none or it's older than 24 hours. */
+  async function openRecord(sessionId: string, name: RecordName): Promise<unknown> {
+    const found = await blob.get(recordPathname(sessionId, name), { access: "private" });
+    if (!found || found.statusCode !== 200 || !found.stream) return null;
+    if (now() - found.blob.uploadedAt.getTime() > RESULT_MAX_AGE_MS) {
+      await found.stream.cancel();
+      return null;
+    }
+    try {
+      return JSON.parse(await new Response(found.stream).text());
+    } catch {
+      return null;
+    }
+  }
+
+  return { save, open, saveRecord, openRecord };
 }
 
 export type ResultStore = ReturnType<typeof createResultStore>;
