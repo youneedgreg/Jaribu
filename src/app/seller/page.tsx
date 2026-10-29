@@ -11,6 +11,7 @@ import { wigsForShop } from "@/lib/seller/wigs";
 import { byId, TEXTURES } from "@/lib/shop/catalog";
 import { formatKes } from "@/lib/shop/demo";
 import { DeleteWigButton } from "./delete-wig-button";
+import { ShareButton } from "./share-button";
 import { ShopForm } from "./shop-form";
 import { SignOutButton } from "./sign-out-button";
 
@@ -24,7 +25,9 @@ async function SellerHome() {
   if (!session) redirect("/seller/sign-in");
 
   const shop = await shopForOwner(session.user.id);
-  const linkPrefix = `${(await headers()).get("host") ?? "tryjaribu.vercel.app"}/s/`;
+  const host = (await headers()).get("host") ?? "tryjaribu.vercel.app";
+  const origin = `${host.startsWith("localhost") ? "http" : "https"}://${host}`;
+  const linkPrefix = `${host}/s/`;
 
   if (!shop) {
     return (
@@ -54,9 +57,12 @@ async function SellerHome() {
         </div>
         <div>
           <dt className="text-sm text-zinc-600 dark:text-zinc-400">Shop link</dt>
-          <dd className="font-medium break-all">
-            {linkPrefix}
-            {shop.slug}
+          <dd className="flex flex-col gap-1">
+            <a href={`/s/${shop.slug}`} className="font-medium break-all underline underline-offset-4">
+              {linkPrefix}
+              {shop.slug}
+            </a>
+            <ShareButton url={`${origin}/s/${shop.slug}`} title={shop.name} label="Share your shop" />
           </dd>
         </div>
       </dl>
@@ -81,7 +87,13 @@ async function SellerHome() {
                   <span className="text-sm text-zinc-600 dark:text-zinc-400">
                     {formatKes(wig.priceKes)} · {wig.lengthIn} in · {byId(TEXTURES, wig.texture)?.name}
                   </span>
-                  <DeleteWigButton wigId={wig.id} name={wig.name} />
+                  <span className="flex gap-4">
+                    <a href={`/w/${wig.id}`} className="text-sm underline underline-offset-4">
+                      View
+                    </a>
+                    <ShareButton url={`${origin}/w/${wig.id}`} title={`${wig.name} · ${shop.name}`} />
+                    <DeleteWigButton wigId={wig.id} name={wig.name} />
+                  </span>
                 </div>
               </li>
             ))}
