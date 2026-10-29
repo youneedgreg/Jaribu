@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DEMO_SHOP, findWig, formatKes } from "@/lib/shop/demo";
+import { DEMO_SHOP, formatKes } from "@/lib/shop/demo";
+import { findWig } from "@/lib/shop/listings";
 
-// Allowed to block on navigation: awaiting params outside <Suspense> keeps real 404s for
-// unknown ids, and every demo id is prerendered anyway. Revisit with seller listings (step F).
+// Allowed to block on navigation: awaiting params and the wig outside <Suspense> keeps real
+// 404s for unknown ids. Demo wigs are prerendered; sellers' wigs are read per request.
 export const instant = false;
 
 export function generateStaticParams() {
@@ -13,18 +14,19 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: PageProps<"/w/[wigId]">): Promise<Metadata> {
-  const wig = findWig((await params).wigId);
-  return wig ? { title: `${wig.name} · ${DEMO_SHOP.name}` } : {};
+  const found = await findWig((await params).wigId);
+  return found ? { title: `${found.wig.name} · ${found.shop.name}` } : {};
 }
 
 export default async function WigPage({ params }: PageProps<"/w/[wigId]">) {
-  const wig = findWig((await params).wigId);
-  if (!wig) notFound();
+  const found = await findWig((await params).wigId);
+  if (!found) notFound();
+  const { wig, shop } = found;
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-5 px-4 py-8">
-      <Link href={`/s/${DEMO_SHOP.id}`} className="text-sm text-zinc-600 underline-offset-4 hover:underline dark:text-zinc-400">
-        {DEMO_SHOP.name}
+      <Link href={`/s/${shop.id}`} className="text-sm text-zinc-600 underline-offset-4 hover:underline dark:text-zinc-400">
+        {shop.name}
       </Link>
       <figure className="flex flex-col gap-1">
         <Image
@@ -37,13 +39,15 @@ export default async function WigPage({ params }: PageProps<"/w/[wigId]">) {
           loading="eager"
           className="w-full rounded-md"
         />
-        <figcaption className="text-xs text-zinc-500">
-          Photo:{" "}
-          <a href={wig.credit.url} className="underline underline-offset-2">
-            {wig.credit.name} on Unsplash
-          </a>
-          . Sample listing, not a real seller.
-        </figcaption>
+        {wig.credit && (
+          <figcaption className="text-xs text-zinc-500">
+            Photo:{" "}
+            <a href={wig.credit.url} className="underline underline-offset-2">
+              {wig.credit.name} on Unsplash
+            </a>
+            . Sample listing, not a real seller.
+          </figcaption>
+        )}
       </figure>
       <div className="flex items-baseline justify-between gap-4">
         <h1 className="text-2xl font-semibold tracking-tight">{wig.name}</h1>
