@@ -1,6 +1,6 @@
 import { jpegSize } from "../images/jpeg";
 import { RESULT_MAX_BYTES, type ResultStore } from "../results/store";
-import type { Colorway } from "../shop/demo";
+import type { Colorway } from "../shop/catalog";
 import { TASK_APIS, type TaskApi } from "../youcam/apis";
 import type { YouCamClient } from "../youcam/client";
 

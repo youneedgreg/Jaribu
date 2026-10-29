@@ -1,45 +1,10 @@
 import type { Construction, TextureRange } from "../checks/blend";
 import type { LaceShade } from "../checks/lace";
+import { COLORS, CONSTRUCTIONS as BUILT, LACE, type Colorway } from "./catalog";
 
 // A hard-coded demo shop until sellers can list their own wigs (step F). The photos are from
 // Unsplash (https://unsplash.com/license): free to use, but with no model releases, so the
 // people in them are never presented as sellers, customers or anyone endorsing Jaribu.
-
-/** A colour the seller offers the wig in, shown on the try-on result with Hair Color. */
-export interface Colorway {
-  id: string;
-  /** The hair trade's colour code (1B, #4, 613…), which sellers and shoppers already use. */
-  code: string;
-  name: string;
-  /** "#rrggbb", sent to YouCam Hair Color. */
-  hex: string;
-}
-
-// Placeholder colours, like the prices: common trade codes with hex values picked by eye, not
-// taken from a seller's swatch. A real seller sets their own in step F.
-const COLORS = {
-  "1b": { id: "1b", code: "1B", name: "Off black", hex: "#1c1613" },
-  "4": { id: "4", code: "#4", name: "Chocolate brown", hex: "#3d2618" },
-  "27": { id: "27", code: "#27", name: "Honey blonde", hex: "#a86c35" },
-  "30": { id: "30", code: "#30", name: "Auburn", hex: "#7a3a1c" },
-  "99j": { id: "99j", code: "99J", name: "Burgundy", hex: "#4d1426" },
-  "613": { id: "613", code: "613", name: "Platinum blonde", hex: "#dcc49a" },
-} satisfies Record<string, Colorway>;
-
-// Placeholder lace shades, like the colours: hex values by eye for how each lace looks over
-// skin. Transparent/HD lace isn't listed because it has no colour of its own to compare.
-const LACE = {
-  light: { id: "light-brown", name: "Light brown lace", hex: "#b98a65" },
-  medium: { id: "medium-brown", name: "Medium brown lace", hex: "#8d5f40" },
-  dark: { id: "dark-brown", name: "Dark brown lace", hex: "#5a3b2a" },
-} satisfies Record<string, LaceShade>;
-
-// Placeholder constructions, like the lace shades: every demo wig is offered glueless (covers all
-// the shopper's hair) and as a U-part (leaves some at the front), so both blend answers show.
-const BUILT = {
-  glueless: { id: "glueless", name: "Glueless", leaveOut: false },
-  uPart: { id: "u-part", name: "U-part", leaveOut: true },
-} satisfies Record<string, Construction>;
 
 export interface Wig {
   id: string;
@@ -81,7 +46,7 @@ export const DEMO_SHOP: Shop = {
       photoWidth: 648,
       photoHeight: 1024,
       credit: { name: "Júlia Costa", url: "https://unsplash.com/photos/OHSzIUy01Tk" },
-      colorways: [COLORS["1b"], COLORS["99j"], COLORS["613"]],
+      colorways: [COLORS.offBlack, COLORS.burgundy, COLORS.platinum],
       laceShades: [LACE.light, LACE.medium, LACE.dark],
     },
     {
@@ -96,7 +61,7 @@ export const DEMO_SHOP: Shop = {
       photoWidth: 682,
       photoHeight: 1024,
       credit: { name: "Dellon Thomas", url: "https://unsplash.com/photos/Fp8uh-Ls4ic" },
-      colorways: [COLORS["1b"], COLORS["30"], COLORS["27"]],
+      colorways: [COLORS.offBlack, COLORS.auburn, COLORS.honey],
       laceShades: [LACE.light, LACE.medium],
     },
     {
@@ -111,7 +76,7 @@ export const DEMO_SHOP: Shop = {
       photoWidth: 680,
       photoHeight: 1024,
       credit: { name: "Good Faces", url: "https://unsplash.com/photos/xmSWVeGEnJw" },
-      colorways: [COLORS["1b"], COLORS["4"], COLORS["30"]],
+      colorways: [COLORS.offBlack, COLORS.chocolate, COLORS.auburn],
       laceShades: [LACE.medium, LACE.dark],
     },
     {
@@ -126,7 +91,7 @@ export const DEMO_SHOP: Shop = {
       photoWidth: 811,
       photoHeight: 1024,
       credit: { name: "Victor Eke", url: "https://unsplash.com/photos/1aqSXQQF_Pw" },
-      colorways: [COLORS["1b"], COLORS["99j"], COLORS["27"]],
+      colorways: [COLORS.offBlack, COLORS.burgundy, COLORS.honey],
       laceShades: [LACE.light, LACE.medium, LACE.dark],
     },
   ],
