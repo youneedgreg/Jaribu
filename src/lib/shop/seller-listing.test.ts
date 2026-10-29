@@ -55,8 +55,8 @@ describe("seller listings", () => {
     expect(shop.wigs.map((w) => w.id)).toEqual([row.id]);
   });
 
-  it("uses the shop link as the shop id and marks it as a real shop", () => {
+  it("uses the shop link as the shop id, marks it as a real shop and keeps its number", () => {
     const shop = sellerShop({ id: "s1", name: "Wanjiru's Wigs", whatsapp: "254712345678", slug: "wanjirus-wigs" }, []);
-    expect(shop).toEqual({ id: "wanjirus-wigs", name: "Wanjiru's Wigs", sample: false, wigs: [] });
+    expect(shop).toEqual({ id: "wanjirus-wigs", name: "Wanjiru's Wigs", sample: false, whatsapp: "254712345678", wigs: [] });
   });
 });

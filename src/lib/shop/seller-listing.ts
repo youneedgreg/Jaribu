@@ -39,6 +39,7 @@ export function sellerShop(shop: SellerShop, wigs: SellerWig[]): Shop {
     id: shop.slug,
     name: shop.name,
     sample: false,
+    whatsapp: shop.whatsapp,
     wigs: wigs.map(sellerWig).filter((wig): wig is Wig => wig !== null),
   };
 }

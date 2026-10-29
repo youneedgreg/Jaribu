@@ -32,6 +32,8 @@ export interface Shop {
   name: string;
   /** True for the demo shop, whose wigs aren't for sale. */
   sample: boolean;
+  /** Where orders go (digits, country code first). Sellers' shops only. */
+  whatsapp?: string;
   wigs: Wig[];
 }
 
