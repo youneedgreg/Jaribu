@@ -19,6 +19,18 @@ export async function shopForOwner(ownerId: string): Promise<SellerShop | null> 
   return rows[0] ?? null;
 }
 
+/** The shop with this link, or null. */
+export async function shopBySlug(slug: string): Promise<SellerShop | null> {
+  const { rows } = await db().query<SellerShop>(`select ${COLUMNS} from shop where slug = $1`, [slug]);
+  return rows[0] ?? null;
+}
+
+/** The shop with this id, or null. */
+export async function shopById(id: string): Promise<SellerShop | null> {
+  const { rows } = await db().query<SellerShop>(`select ${COLUMNS} from shop where id = $1`, [id]);
+  return rows[0] ?? null;
+}
+
 /**
  * Creates the seller's shop, or updates it if they have one. Takes values that passed
  * checkShopFields. Returns "slug-taken" when another shop already has that link.

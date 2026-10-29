@@ -31,6 +31,18 @@ export async function wigsForShop(shopId: string): Promise<SellerWig[]> {
   return rows;
 }
 
+/** A wig and the id of the shop that sells it, or null. */
+export async function wigById(wigId: string): Promise<{ wig: SellerWig; shopId: string } | null> {
+  if (!isWigId(wigId)) return null;
+  const { rows } = await db().query<SellerWig & { shopId: string }>(
+    `select ${COLUMNS}, shop_id as "shopId" from wig where id = $1`,
+    [wigId],
+  );
+  if (!rows[0]) return null;
+  const { shopId, ...wig } = rows[0];
+  return { wig, shopId };
+}
+
 /** Stores the photo and saves the wig. The photo must pass checkPhoto("wig"). Returns the wig id. */
 export async function addWig(shopId: string, fields: WigFields, photo: Uint8Array): Promise<string> {
   checkPhoto("wig", photo);
