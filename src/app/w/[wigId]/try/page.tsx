@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DEMO_SHOP, findWig } from "@/lib/shop/demo";
+import { DEMO_SHOP } from "@/lib/shop/demo";
+import { findWig } from "@/lib/shop/listings";
 import { TryOn } from "./try-on";
 
-// Allowed to block on navigation: awaiting params outside <Suspense> keeps real 404s for
-// unknown ids, and every demo id is prerendered anyway. Revisit with seller listings (step F).
+// Allowed to block on navigation: awaiting params and the wig outside <Suspense> keeps real
+// 404s for unknown ids. Demo wigs are prerendered; sellers' wigs are read per request.
 export const instant = false;
 
 export function generateStaticParams() {
@@ -14,14 +15,15 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: PageProps<"/w/[wigId]/try">): Promise<Metadata> {
-  const wig = findWig((await params).wigId);
-  return wig ? { title: `Try on ${wig.name} · Jaribu`, robots: { index: false } } : {};
+  const found = await findWig((await params).wigId);
+  return found ? { title: `Try on ${found.wig.name} · Jaribu`, robots: { index: false } } : {};
 }
 
 // Step D: guided capture with YouCam's Camera Kit, with "upload a photo" as the fallback.
 export default async function TryPage({ params }: PageProps<"/w/[wigId]/try">) {
-  const wig = findWig((await params).wigId);
-  if (!wig) notFound();
+  const found = await findWig((await params).wigId);
+  if (!found) notFound();
+  const { wig, shop } = found;
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-8">
@@ -39,7 +41,7 @@ export default async function TryPage({ params }: PageProps<"/w/[wigId]/try">) {
         match, and your side photos only if you check the blend. YouCam keeps uploaded photos for up to 30 days. Your
         result is shown for 24 hours.
       </p>
-      <TryOn wigs={DEMO_SHOP.wigs} firstWigId={wig.id} />
+      <TryOn wigs={shop.wigs} firstWigId={wig.id} />
     </main>
   );
 }

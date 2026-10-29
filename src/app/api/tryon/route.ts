@@ -3,14 +3,14 @@ import { grantAccessPass, hasAccessPass } from "@/lib/access-cookie";
 import { failure, json, logError } from "@/lib/http";
 import { taskTicket } from "@/lib/session";
 import { currentOrNewSession } from "@/lib/session-cookie";
-import { findWig } from "@/lib/shop/demo";
+import { findWig } from "@/lib/shop/listings";
 import { readWigPhoto } from "@/lib/shop/wig-photo";
 import { checkPhoto, PHOTO_MAX_BYTES, PhotoError, startTryOn } from "@/lib/tryon/tryon";
 import { InsufficientUnitsError } from "@/lib/youcam/client";
 import { youcam } from "@/lib/youcam/server";
 
 // Starts a try-on: multipart form with `selfie` (JPG, long side ≤ 1024 px), `wigId` (a demo
-// shop wig) and, unless this device has a pass, `accessCode`. Returns the task id and a ticket
+// or seller wig) and, unless this device has a pass, `accessCode`. Returns the task id and a ticket
 // for polling GET /api/tryon/<taskId>.
 
 export async function POST(request: Request) {
@@ -32,7 +32,13 @@ export async function POST(request: Request) {
   }
 
   const wigId = form.get("wigId");
-  const wig = typeof wigId === "string" ? findWig(wigId) : undefined;
+  let wig;
+  try {
+    wig = typeof wigId === "string" ? (await findWig(wigId))?.wig : undefined;
+  } catch (error) {
+    logError("tryon/wig", error);
+    return failure(502, "wig_failed", "We couldn't load that wig. Please try again in a minute.");
+  }
   if (!wig) return failure(404, "no_wig", "We couldn't find that wig.");
 
   let selfie: Uint8Array<ArrayBuffer>;

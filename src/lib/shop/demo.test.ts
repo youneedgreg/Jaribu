@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { jpegSize } from "../images/jpeg";
 import { checkPhoto } from "../tryon/tryon";
 import { HAIR_BANDS } from "../youcam/hair-type";
-import { DEMO_SHOP, findColorway, findWig, formatKes } from "./demo";
+import { DEMO_SHOP, findColorway, findDemoWig, formatKes } from "./demo";
 
 describe("demo shop", () => {
   it.each(DEMO_SHOP.wigs.map((w) => [w.id, w] as const))("%s has a photo YouCam will take, at the listed size", (_, wig) => {
@@ -24,9 +24,9 @@ describe("demo shop", () => {
   });
 
   it("finds wigs by id only", () => {
-    expect(findWig("curly-afro")?.name).toBe("Curly afro");
-    expect(findWig("../../etc/passwd")).toBeUndefined();
-    expect(findWig("")).toBeUndefined();
+    expect(findDemoWig("curly-afro")?.name).toBe("Curly afro");
+    expect(findDemoWig("../../etc/passwd")).toBeUndefined();
+    expect(findDemoWig("")).toBeUndefined();
   });
 
   it("offers each wig in a few colours YouCam can take", () => {
@@ -57,7 +57,7 @@ describe("demo shop", () => {
   });
 
   it("finds a colour only among the wig's own", () => {
-    const wig = findWig("body-wave")!;
+    const wig = findDemoWig("body-wave")!;
     expect(findColorway(wig, "30")?.code).toBe("#30");
     expect(findColorway(wig, "613")).toBeUndefined();
     expect(findColorway(wig, "")).toBeUndefined();

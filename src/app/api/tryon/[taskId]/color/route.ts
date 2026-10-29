@@ -4,7 +4,8 @@ import { isSafeId } from "@/lib/results/store";
 import { results } from "@/lib/results/server";
 import { taskTicket, taskTicketMatches } from "@/lib/session";
 import { currentSession } from "@/lib/session-cookie";
-import { findColorway, findWig } from "@/lib/shop/demo";
+import { findColorway } from "@/lib/shop/demo";
+import { findWig } from "@/lib/shop/listings";
 import { RecolorError, startRecolor } from "@/lib/tryon/tryon";
 import { InsufficientUnitsError } from "@/lib/youcam/client";
 import { youcam } from "@/lib/youcam/server";
@@ -24,7 +25,13 @@ export async function POST(request: Request, ctx: RouteContext<"/api/tryon/[task
   if (!isSafeId(taskId) || !taskTicketMatches(ticket, "hairstyle", session.id, taskId, process.env.SESSION_SECRET)) {
     return failure(404, "not_found", "We couldn't find this preview. Please start again.");
   }
-  const wig = typeof body?.wigId === "string" ? findWig(body.wigId) : undefined;
+  let wig;
+  try {
+    wig = typeof body?.wigId === "string" ? (await findWig(body.wigId))?.wig : undefined;
+  } catch (error) {
+    logError("tryon/color-wig", error);
+    return failure(502, "wig_failed", "We couldn't load that wig. Please try again in a minute.");
+  }
   const colorway = wig && typeof body?.colorwayId === "string" ? findColorway(wig, body.colorwayId) : undefined;
   if (!colorway) return failure(404, "no_colorway", "This wig doesn't come in that colour.");
 

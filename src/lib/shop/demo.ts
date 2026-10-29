@@ -103,7 +103,7 @@ export const DEMO_SHOP: Shop = {
   ],
 };
 
-export function findWig(id: string): Wig | undefined {
+export function findDemoWig(id: string): Wig | undefined {
   return DEMO_SHOP.wigs.find((wig) => wig.id === id);
 }
 
