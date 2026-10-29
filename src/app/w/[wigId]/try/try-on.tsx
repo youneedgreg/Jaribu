@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { capture, CameraKitError, hairShots, loadCameraKit, type HairShots, type Shot } from "@/lib/camera-kit/camera-kit";
 import { lightness } from "@/lib/checks/lace";
 import { formatKes, type Wig } from "@/lib/shop/demo";
-import { requestColorway, requestTone, requestTryOn, type TaskRef, type TryOnProgress } from "@/lib/tryon/client";
+import { requestColorway, requestHairType, requestTone, requestTryOn, type TaskRef, type TryOnProgress } from "@/lib/tryon/client";
 import { BeforeAfter } from "./before-after";
+import { BlendCheck, toHairJpegs, type HairState } from "./blend-check";
 import { LaceMatch, toToneJpeg, type ToneState } from "./lace-match";
 import { Swatch } from "./swatch";
 
@@ -23,7 +24,7 @@ interface Result {
   task: TaskRef;
 }
 
-/** What the camera took. The front shot makes the preview; the close-up feeds the lace match. */
+/** What the camera took. The front shot makes the preview; all three feed the blend check, the close-up the lace match. */
 interface Captures {
   hair: HairShots;
   tone: Shot | null;
@@ -82,6 +83,7 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
   const [colorResults, setColorResults] = useState<Record<string, string>>({});
   const [colorwayId, setColorwayId] = useState<string | null>(null);
   const [tone, setTone] = useState<ToneState>({ step: "idle" });
+  const [hair, setHair] = useState<HairState>({ step: "idle" });
   const [captures, setCaptures] = useState<Captures | null>(null);
   const [debug, setDebug] = useState(false);
   const cancelled = useRef(false);
@@ -162,6 +164,7 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
     setResults({});
     setColorResults({});
     setTone({ step: "idle" });
+    setHair({ step: "idle" });
     await tryWig(firstWigId, next, {});
   }
 
@@ -238,12 +241,35 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
     setTone({ step: "failed", message: outcome.message });
   }
 
+  /** Reads the hair type from the three photos for the blend check (2 units, once per session). */
+  async function checkBlend() {
+    const shots = captures?.hair;
+    if (!shots) return;
+    let photos: Awaited<ReturnType<typeof toHairJpegs>>;
+    try {
+      setHair({ step: "working", label: "Preparing your photos…" });
+      photos = await toHairJpegs(shots);
+    } catch {
+      return setHair({ step: "failed", message: "We couldn't read your photos. Take the photos again." });
+    }
+    const outcome = await requestHairType(photos, {
+      isCancelled: () => cancelled.current,
+      onProgress: (p) =>
+        setHair({ step: "working", label: p.stage === "starting" ? "Sending your photos…" : `Reading your hair type… ${p.seconds} s` }),
+    });
+    if (outcome.ok) return setHair({ step: "done", hair: outcome.hair, earlier: outcome.earlier });
+    if (outcome.code === "cancelled") return;
+    if (outcome.code === "access_code") setNeedsCode(true);
+    setHair({ step: "failed", message: outcome.message });
+  }
+
   function startOver() {
     setSelfie(null);
     setResults({});
     setColorResults({});
     setColorwayId(null);
     setTone({ step: "idle" });
+    setHair({ step: "idle" });
     setCaptures(null);
     setWigId(firstWigId);
     setMode("camera");
@@ -366,6 +392,18 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
             />
           )}
 
+          {result && (
+            <BlendCheck
+              texture={wig.texture}
+              textureRange={wig.textureRange}
+              constructions={wig.constructions}
+              hasPhotos={Boolean(captures)}
+              hair={hair}
+              onCheck={() => void checkBlend()}
+              disabled={busy || hair.step === "working"}
+            />
+          )}
+
           {state.step === "failed" && (
             <div className="flex flex-col gap-2">
               <p role="alert" className="text-sm text-red-700 dark:text-red-400">
@@ -459,13 +497,30 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
       {/* Camera Kit draws its own UI here; React must leave this div's children alone. */}
       <div id="YMK-module" />
 
-      {debug && captures && <CaptureDetails captures={captures} result={shown} skinHex={tone.step === "done" ? tone.skinHex : undefined} />}
+      {debug && captures && (
+        <CaptureDetails
+          captures={captures}
+          result={shown}
+          skinHex={tone.step === "done" ? tone.skinHex : undefined}
+          hairType={hair.step === "done" ? `${hair.hair.from} to ${hair.hair.to} (${hair.hair.term})` : undefined}
+        />
+      )}
     </div>
   );
 }
 
 /** Testing aid (?debug): what Camera Kit returned, measured from the photos themselves. */
-function CaptureDetails({ captures, result, skinHex }: { captures: Captures; result: string | undefined; skinHex?: string }) {
+function CaptureDetails({
+  captures,
+  result,
+  skinHex,
+  hairType,
+}: {
+  captures: Captures;
+  result: string | undefined;
+  skinHex?: string;
+  hairType?: string;
+}) {
   const [rows, setRows] = useState<{ label: string; url: string; text: string }[]>([]);
   const [resultSize, setResultSize] = useState<string | null>(null);
 
@@ -521,6 +576,7 @@ function CaptureDetails({ captures, result, skinHex }: { captures: Captures; res
           Skin reading: {skinHex} (lightness {lightness(skinHex).toFixed(1)})
         </p>
       )}
+      {hairType && <p>Hair reading: {hairType}</p>}
       <SwatchCheck colours={[["1B off black", "#1c1613"], ...(skinHex ? [["Skin reading", skinHex] as [string, string]] : [])]} />
       {rows.map((row) => (
         <figure key={row.label} className="flex flex-col gap-1">

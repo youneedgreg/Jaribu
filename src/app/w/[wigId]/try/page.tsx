@@ -35,9 +35,9 @@ export default async function TryPage({ params }: PageProps<"/w/[wigId]/try">) {
         </div>
       </header>
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Your front photo is sent to YouCam to make the preview, and your face close-up only if you check the lace match;
-        YouCam keeps uploaded photos for up to 30 days. The side photos stay on this phone. Your result is shown for 24
-        hours.
+        Your front photo is sent to YouCam to make the preview. Your face close-up is sent only if you check the lace
+        match, and your side photos only if you check the blend. YouCam keeps uploaded photos for up to 30 days. Your
+        result is shown for 24 hours.
       </p>
       <TryOn wigs={DEMO_SHOP.wigs} firstWigId={wig.id} />
     </main>
