@@ -13,6 +13,10 @@ export const TONE_MIN_SIDE = 320;
 /** Facial Color Tones takes up to 4096 px, but anything over 1080 is shrunk before analysis. */
 export const TONE_MAX_SIDE = 1080;
 
+/** Hair Type Detection takes 320–4096 px too, and also shrinks anything over 1080. */
+export const HAIR_MIN_SIDE = 320;
+export const HAIR_MAX_SIDE = 1080;
+
 export interface Rect {
   x: number;
   y: number;

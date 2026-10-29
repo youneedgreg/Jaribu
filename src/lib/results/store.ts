@@ -46,8 +46,8 @@ export function resultPathname(sessionId: string, taskId: string): string {
   return `sessions/${sessionId}/tryon-${taskId}.jpg`;
 }
 
-/** Small per-session records kept beside the results, such as the skin-tone reading. */
-export type RecordName = "tone";
+/** Small per-session records kept beside the results: the skin-tone and hair-type readings. */
+export type RecordName = "tone" | "hairtype";
 
 export function recordPathname(sessionId: string, name: RecordName): string {
   if (!isSafeId(sessionId)) throw new Error("Invalid session id");
