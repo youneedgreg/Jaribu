@@ -1,12 +1,21 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import Image from "next/image";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { currentSeller } from "@/lib/seller/current-seller";
 import { shopForOwner } from "@/lib/seller/shop";
 import { formatWhatsapp } from "@/lib/seller/shop-fields";
+import { wigsForShop } from "@/lib/seller/wigs";
+import { byId, TEXTURES } from "@/lib/shop/catalog";
+import { formatKes } from "@/lib/shop/demo";
+import { DeleteWigButton } from "./delete-wig-button";
 import { ShopForm } from "./shop-form";
 import { SignOutButton } from "./sign-out-button";
+
+const addButton =
+  "self-start rounded-md bg-zinc-900 px-4 py-3 font-medium text-white dark:bg-zinc-100 dark:text-zinc-900";
 
 export const metadata: Metadata = { title: "Your shop · Jaribu", robots: { index: false } };
 
@@ -30,6 +39,8 @@ async function SellerHome() {
     );
   }
 
+  const wigs = await wigsForShop(shop.id);
+
   return (
     <>
       <dl className="flex flex-col gap-3">
@@ -49,7 +60,37 @@ async function SellerHome() {
           </dd>
         </div>
       </dl>
-      <p>Adding wigs comes next.</p>
+      <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold">Your wigs</h2>
+        {wigs.length === 0 ? (
+          <p className="text-zinc-600 dark:text-zinc-400">No wigs yet. Add your first one so shoppers can try it on.</p>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {wigs.map((wig) => (
+              <li key={wig.id} className="flex gap-3">
+                <Image
+                  src={`/api/wigs/${wig.id}/photo`}
+                  alt={`${wig.name} wig`}
+                  width={wig.photoWidth}
+                  height={wig.photoHeight}
+                  unoptimized
+                  className="aspect-[3/4] w-20 rounded-md object-cover"
+                />
+                <div className="flex flex-col gap-1">
+                  <span className="font-medium">{wig.name}</span>
+                  <span className="text-sm text-zinc-600 dark:text-zinc-400">
+                    {formatKes(wig.priceKes)} · {wig.lengthIn} in · {byId(TEXTURES, wig.texture)?.name}
+                  </span>
+                  <DeleteWigButton wigId={wig.id} name={wig.name} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        <Link href="/seller/wigs/new" className={addButton}>
+          Add a wig
+        </Link>
+      </section>
       <details className="rounded-md border border-zinc-200 p-4 dark:border-zinc-800">
         <summary className="cursor-pointer font-medium">Edit shop details</summary>
         <div className="mt-4">

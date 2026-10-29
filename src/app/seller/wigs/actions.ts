@@ -1,11 +1,12 @@
 "use server";
 
+import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { logError } from "@/lib/http";
 import { currentSeller } from "@/lib/seller/current-seller";
 import { shopForOwner } from "@/lib/seller/shop";
 import { checkWigFields, type WigFieldErrors, type WigFieldsInput } from "@/lib/seller/wig-fields";
-import { addWig } from "@/lib/seller/wigs";
+import { addWig, deleteWig } from "@/lib/seller/wigs";
 import { checkPhoto, PhotoError } from "@/lib/tryon/tryon";
 
 export interface WigFormState {
@@ -61,3 +62,13 @@ export async function addWigAction(_previous: WigFormState, form: FormData): Pro
   redirect("/seller");
 }
 
+/** Deletes one of the seller's wigs and its photo. */
+export async function deleteWigAction(form: FormData): Promise<void> {
+  const shop = await sellerShop();
+  try {
+    await deleteWig(shop.id, String(form.get("wigId") ?? ""));
+  } catch (error) {
+    logError("seller/delete-wig", error);
+  }
+  refresh();
+}
