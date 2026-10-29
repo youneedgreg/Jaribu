@@ -1,8 +1,10 @@
 // The browser side of a try-on: start it with POST /api/tryon, then poll
 // GET /api/tryon/<taskId> every 3 s until it succeeds, fails or takes too long. A colour on a
-// finished try-on runs the same way through POST /api/tryon/<taskId>/color, and the skin-tone
-// reading through POST then GET /api/tone.
+// finished try-on runs the same way through POST /api/tryon/<taskId>/color, the skin-tone
+// reading through POST then GET /api/tone, and the hair-type reading through /api/hairtype.
 // fetch, sleep and the clock are passed in so the flow can be tested without a browser.
+
+import type { HairType } from "../youcam/hair-type";
 
 export const POLL_MS = 3000;
 export const GIVE_UP_MS = 3 * 60_000;
@@ -19,6 +21,9 @@ type Failure = { ok: false; code: string; message: string };
 
 /** `earlier`: the session's reading came from an earlier close-up, not the one just sent. */
 export type ToneOutcome = { ok: true; skinHex: string; earlier: boolean } | Failure;
+
+/** `earlier`: the session's reading came from earlier photos, not the ones just sent. */
+export type HairOutcome = { ok: true; hair: HairType; earlier: boolean } | Failure;
 
 export type TryOnOutcome =
   /** `task` is what a colour request needs to point back at this result. */
@@ -69,6 +74,16 @@ export async function requestTone(closeUp: Blob, deps: TryOnDeps = {}): Promise<
   return outcome.ok ? { ok: true, skinHex: outcome.body?.skinHex ?? "", earlier: outcome.start?.earlier === true } : outcome;
 }
 
+/** Reads the shopper's hair type from the three camera photos (2 units, once per session). */
+export async function requestHairType(photos: { front: Blob; right: Blob; left: Blob }, deps: TryOnDeps = {}): Promise<HairOutcome> {
+  const body = new FormData();
+  for (const side of ["front", "right", "left"] as const) body.set(side, photos[side], `${side}.jpg`);
+  const outcome = await runTask((fetchFn) => fetchFn("/api/hairtype", { method: "POST", body }), () => "/api/hairtype", deps);
+  if (!outcome.ok) return outcome;
+  if (!outcome.body?.hair) return { ok: false, code: "unreadable_result", message: "We couldn't read your hair type. Please try again." };
+  return { ok: true, hair: outcome.body.hair, earlier: outcome.start?.earlier === true };
+}
+
 const taskPollUrl = (query: string) => (start: TaskRef) =>
   `/api/tryon/${encodeURIComponent(start.taskId)}?ticket=${encodeURIComponent(start.ticket)}${query}`;
 
@@ -79,6 +94,7 @@ type Body = {
   message?: string;
   resultUrl?: string;
   skinHex?: string;
+  hair?: HairType;
   earlier?: boolean;
   taskId?: string;
   ticket?: string;
