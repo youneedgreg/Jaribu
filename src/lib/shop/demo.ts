@@ -1,3 +1,4 @@
+import type { Construction, TextureRange } from "../checks/blend";
 import type { LaceShade } from "../checks/lace";
 
 // A hard-coded demo shop until sellers can list their own wigs (step F). The photos are from
@@ -33,10 +34,20 @@ const LACE = {
   dark: { id: "dark-brown", name: "Dark brown lace", hex: "#5a3b2a" },
 } satisfies Record<string, LaceShade>;
 
+// Placeholder constructions, like the lace shades: every demo wig is offered glueless (covers all
+// the shopper's hair) and as a U-part (leaves some at the front), so both blend answers show.
+const BUILT = {
+  glueless: { id: "glueless", name: "Glueless", leaveOut: false },
+  uPart: { id: "u-part", name: "U-part", leaveOut: true },
+} satisfies Record<string, Construction>;
+
 export interface Wig {
   id: string;
   name: string;
   texture: string;
+  /** The texture on Hair Type Detection's 1–4C scale, for the blend check. Placeholder, by eye. */
+  textureRange: TextureRange;
+  constructions: Construction[];
   length: string;
   priceKes: number;
   /** Public path of the 1024-px JPG, also sent to YouCam as the try-on reference. */
@@ -62,6 +73,8 @@ export const DEMO_SHOP: Shop = {
       id: "long-straight",
       name: "Long straight",
       texture: "Straight",
+      textureRange: { from: "1", to: "1" },
+      constructions: [BUILT.glueless, BUILT.uPart],
       length: "About 24 in",
       priceKes: 18500,
       photo: "/wigs/long-straight.jpg",
@@ -75,6 +88,8 @@ export const DEMO_SHOP: Shop = {
       id: "body-wave",
       name: "Body wave",
       texture: "Body wave",
+      textureRange: { from: "2A", to: "2B" },
+      constructions: [BUILT.glueless, BUILT.uPart],
       length: "About 22 in",
       priceKes: 16000,
       photo: "/wigs/body-wave.jpg",
@@ -88,6 +103,8 @@ export const DEMO_SHOP: Shop = {
       id: "curly-afro",
       name: "Curly afro",
       texture: "Kinky curly",
+      textureRange: { from: "4A", to: "4B" },
+      constructions: [BUILT.glueless, BUILT.uPart],
       length: "About 8 in",
       priceKes: 9500,
       photo: "/wigs/curly-afro.jpg",
@@ -101,6 +118,8 @@ export const DEMO_SHOP: Shop = {
       id: "straight-bob",
       name: "Straight bob",
       texture: "Straight",
+      textureRange: { from: "1", to: "1" },
+      constructions: [BUILT.glueless, BUILT.uPart],
       length: "About 10 in",
       priceKes: 8000,
       photo: "/wigs/straight-bob.jpg",

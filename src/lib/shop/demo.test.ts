@@ -3,6 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { jpegSize } from "../images/jpeg";
 import { checkPhoto } from "../tryon/tryon";
+import { HAIR_BANDS } from "../youcam/hair-type";
 import { DEMO_SHOP, findColorway, findWig, formatKes } from "./demo";
 
 describe("demo shop", () => {
@@ -44,6 +45,14 @@ describe("demo shop", () => {
     for (const wig of DEMO_SHOP.wigs) {
       expect(wig.laceShades.length).toBeGreaterThan(0);
       for (const shade of wig.laceShades) expect(shade.hex).toMatch(/^#[0-9a-f]{6}$/);
+    }
+  });
+
+  it("gives the blend check a texture range and at least one construction", () => {
+    for (const wig of DEMO_SHOP.wigs) {
+      expect(wig.constructions.length).toBeGreaterThan(0);
+      expect(HAIR_BANDS.indexOf(wig.textureRange.from)).toBeGreaterThanOrEqual(0);
+      expect(HAIR_BANDS.indexOf(wig.textureRange.from)).toBeLessThanOrEqual(HAIR_BANDS.indexOf(wig.textureRange.to));
     }
   });
 
