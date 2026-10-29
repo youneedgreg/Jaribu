@@ -1,5 +1,6 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { RESULT_MAX_AGE_MS } from "./results/store";
+import type { TaskApi } from "./youcam/apis";
 
 // A shopper session is a random id in a signed, httpOnly cookie. There's no account and no
 // database row: the id only scopes the shopper's results in Blob, and it dies after 24 hours
@@ -55,13 +56,22 @@ export function decodeSession(value: string | undefined, secret: string | undefi
   return { id, issuedAt };
 }
 
-/** Ties a YouCam task to the session that started it, so nobody else can poll it into theirs. */
-export function taskTicket(sessionId: string, taskId: string, secret: string | undefined): string {
-  return sign(`task.${sessionId}.${taskId}`, checkSecret(secret));
+/**
+ * Ties a YouCam task to the session that started it and to its API, so nobody else can poll
+ * it into theirs and a task is only ever polled where it runs.
+ */
+export function taskTicket(api: TaskApi, sessionId: string, taskId: string, secret: string | undefined): string {
+  return sign(`task.${api}.${sessionId}.${taskId}`, checkSecret(secret));
 }
 
-export function taskTicketMatches(ticket: string | null | undefined, sessionId: string, taskId: string, secret: string | undefined): boolean {
-  const expected = Buffer.from(taskTicket(sessionId, taskId, secret));
+export function taskTicketMatches(
+  ticket: string | null | undefined,
+  api: TaskApi,
+  sessionId: string,
+  taskId: string,
+  secret: string | undefined,
+): boolean {
+  const expected = Buffer.from(taskTicket(api, sessionId, taskId, secret));
   const given = Buffer.from(ticket ?? "");
   return given.length === expected.length && timingSafeEqual(given, expected);
 }

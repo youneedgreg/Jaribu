@@ -16,15 +16,42 @@ const ID = /^[A-Za-z0-9_-]{1,128}$/;
 export const isSafeId = (id: string) => ID.test(id);
 
 export class ResultCopyError extends Error {
-  constructor(message: string) {
+  /** `permanent`: asking YouCam again would give the same file, so retrying can't help. */
+  constructor(
+    message: string,
+    readonly permanent = false,
+  ) {
     super(message);
     this.name = "ResultCopyError";
   }
 }
 
+export type ImageType = "image/jpeg" | "image/png" | "image/webp";
+
+/**
+ * The image type from the file's first bytes. YouCam's result links don't label files
+ * reliably: Hair Color's PNGs arrive as binary/octet-stream (checked 28 Oct).
+ */
+export function imageType(bytes: Uint8Array): ImageType | null {
+  const starts = (sig: number[], at = 0) => sig.every((b, i) => bytes[at + i] === b);
+  if (starts([0xff, 0xd8, 0xff])) return "image/jpeg";
+  if (starts([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) return "image/png";
+  if (starts([0x52, 0x49, 0x46, 0x46]) && starts([0x57, 0x45, 0x42, 0x50], 8)) return "image/webp";
+  return null;
+}
+
+/** Colour previews are stored the same way, under their own Hair Color task id. */
 export function resultPathname(sessionId: string, taskId: string): string {
   if (!isSafeId(sessionId) || !isSafeId(taskId)) throw new Error("Invalid session or task id");
   return `sessions/${sessionId}/tryon-${taskId}.jpg`;
+}
+
+/** Small per-session records kept beside the results: the skin-tone and hair-type readings. */
+export type RecordName = "tone" | "hairtype";
+
+export function recordPathname(sessionId: string, name: RecordName): string {
+  if (!isSafeId(sessionId)) throw new Error("Invalid session id");
+  return `sessions/${sessionId}/${name}.json`;
 }
 
 /** The subset of @vercel/blob this module uses, so tests can pass fakes. */
@@ -42,16 +69,17 @@ export function createResultStore({ blob, fetch: doFetch = fetch, now = Date.now
   /** Downloads the result from YouCam and stores it privately. Returns the Blob pathname. */
   async function save(sessionId: string, taskId: string, sourceUrl: string): Promise<string> {
     const pathname = resultPathname(sessionId, taskId);
-    if (new URL(sourceUrl).protocol !== "https:") throw new ResultCopyError("Result URL is not https");
+    if (new URL(sourceUrl).protocol !== "https:") throw new ResultCopyError("Result URL is not https", true);
 
     const res = await doFetch(sourceUrl);
     if (!res.ok) throw new ResultCopyError(`Result download failed: ${res.status}`);
-    const contentType = res.headers.get("content-type")?.split(";")[0].trim() ?? "";
-    if (!contentType.startsWith("image/")) throw new ResultCopyError(`Result is not an image: ${contentType || "no type"}`);
     const declared = Number(res.headers.get("content-length") ?? 0);
-    if (declared > RESULT_MAX_BYTES) throw new ResultCopyError("Result is too large");
+    if (declared > RESULT_MAX_BYTES) throw new ResultCopyError("Result is too large", true);
     const bytes = Buffer.from(await res.arrayBuffer());
-    if (bytes.byteLength > RESULT_MAX_BYTES) throw new ResultCopyError("Result is too large");
+    if (bytes.byteLength > RESULT_MAX_BYTES) throw new ResultCopyError("Result is too large", true);
+    // Stored and served as what the bytes are, whatever the link's header said.
+    const contentType = imageType(bytes);
+    if (!contentType) throw new ResultCopyError("Result is not an image", true);
 
     // Overwrite is safe: the same task always gives the same image, and a repeat poll after
     // success shouldn't fail.
@@ -70,7 +98,28 @@ export function createResultStore({ blob, fetch: doFetch = fetch, now = Date.now
     return { status: "ok", stream: found.stream, contentType: found.blob.contentType ?? "image/jpeg", size: found.blob.size };
   }
 
-  return { save, open };
+  /** Stores a small JSON record for the session, replacing any earlier one. */
+  async function saveRecord(sessionId: string, name: RecordName, data: unknown): Promise<void> {
+    const body = Buffer.from(JSON.stringify(data));
+    await blob.put(recordPathname(sessionId, name), body, { access: "private", contentType: "application/json", allowOverwrite: true, addRandomSuffix: false });
+  }
+
+  /** The session's record, or null if there's none or it's older than 24 hours. */
+  async function openRecord(sessionId: string, name: RecordName): Promise<unknown> {
+    const found = await blob.get(recordPathname(sessionId, name), { access: "private" });
+    if (!found || found.statusCode !== 200 || !found.stream) return null;
+    if (now() - found.blob.uploadedAt.getTime() > RESULT_MAX_AGE_MS) {
+      await found.stream.cancel();
+      return null;
+    }
+    try {
+      return JSON.parse(await new Response(found.stream).text());
+    } catch {
+      return null;
+    }
+  }
+
+  return { save, open, saveRecord, openRecord };
 }
 
 export type ResultStore = ReturnType<typeof createResultStore>;

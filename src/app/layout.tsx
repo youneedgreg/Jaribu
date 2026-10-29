@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -15,6 +15,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Jaribu",
   description: "Try a wig on your own face and check whether it will blend, before you pay.",
+};
+
+// The page has its own light and dark looks. Saying so tells a browser's forced dark mode
+// to leave it alone (Samsung Internet's turned the 1B swatch near white, 28 Oct).
+export const viewport: Viewport = {
+  colorScheme: "light dark",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

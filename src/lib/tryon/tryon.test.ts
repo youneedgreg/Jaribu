@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { fakeJpeg } from "../images/__fixtures__/fake-jpeg";
 import { InsufficientUnitsError } from "../youcam/client";
-import { checkPhoto, PHOTO_MAX_BYTES, PhotoError, pollTryOn, startTryOn } from "./tryon";
+import { checkPhoto, PHOTO_MAX_BYTES, PhotoError, pollTryOn, RecolorError, startRecolor, startTryOn } from "./tryon";
 
 // A fake YouCam client that records calls and answers getTask from a queue.
 function fakeClient({ balanceOk = true, outcomes = [] as unknown[] } = {}) {
@@ -104,5 +104,79 @@ describe("pollTryOn", () => {
     expect(result).toMatchObject({ status: "error", code: "error_hair_too_short" });
     expect(result.status === "error" && result.message).toMatch(/front-facing photo/);
     expect(saved).toEqual([]);
+  });
+});
+
+// A stored result as ResultStore.open returns it.
+function storedResult(bytes: Uint8Array | "missing" | "expired") {
+  const opened: string[] = [];
+  const store = {
+    async open(sessionId: string, taskId: string) {
+      opened.push(`${sessionId}/${taskId}`);
+      if (typeof bytes === "string") return { status: bytes } as const;
+      return { status: "ok", stream: new Blob([new Uint8Array(bytes)]).stream(), contentType: "image/jpeg", size: bytes.byteLength } as const;
+    },
+  };
+  return { store, opened };
+}
+
+describe("startRecolor", () => {
+  it("re-uploads this session's stored result and starts Hair Color with the colour's hex", async () => {
+    const { client, calls } = fakeClient();
+    const { store, opened } = storedResult(fakeJpeg(768, 1024));
+    expect(await startRecolor(client, store, "session-1", "tryon-task", { hex: "#7a3a1c" })).toBe("task-123");
+    expect(opened).toEqual(["session-1/tryon-task"]);
+    expect(calls).toEqual([
+      { fn: "ensureUnits", args: [1] },
+      { fn: "uploadFile", args: ["tryon.jpg"] },
+      { fn: "startTask", args: ["haircolor", { src_file_id: "file-1", pattern: { name: "full" }, palettes: [{ color: "#7a3a1c" }] }] },
+    ]);
+  });
+
+  it.each([
+    ["missing", "not_found"],
+    ["expired", "expired"],
+  ] as const)("calls YouCam not at all when the result is %s", async (state, code) => {
+    const { client, calls } = fakeClient();
+    const { store } = storedResult(state);
+    await expect(startRecolor(client, store, "s", "t", { hex: "#000000" })).rejects.toMatchObject({ name: "RecolorError", code });
+    expect(calls).toEqual([]);
+  });
+
+  it.each([
+    ["too small", fakeJpeg(1024, 300)],
+    ["too tall for the stricter limit", fakeJpeg(800, 1080)],
+    ["too wide", fakeJpeg(1920, 1000)],
+    ["not a JPG", new Uint8Array([0x89, 0x50, 0x4e, 0x47])],
+  ])("refuses a result that is %s before spending units", async (_, bytes) => {
+    const { client, calls } = fakeClient();
+    const { store } = storedResult(bytes);
+    await expect(startRecolor(client, store, "s", "t", { hex: "#000000" })).rejects.toBeInstanceOf(RecolorError);
+    expect(calls).toEqual([]);
+  });
+
+  it("uploads nothing when units are below the floor", async () => {
+    const { client, calls } = fakeClient({ balanceOk: false });
+    const { store } = storedResult(fakeJpeg(1024, 559));
+    await expect(startRecolor(client, store, "s", "t", { hex: "#000000" })).rejects.toBeInstanceOf(InsufficientUnitsError);
+    expect(calls.map((c) => c.fn)).toEqual(["ensureUnits"]);
+  });
+});
+
+describe("pollTryOn for a colour", () => {
+  it("polls Hair Color and stores the recoloured result in the session", async () => {
+    const url = "https://results.example.test/colorway.jpg";
+    const { client, calls } = fakeClient({ outcomes: [{ status: "success", taskId: "color-task", results: { url } }] });
+    const { store, saved } = fakeStore();
+    expect(await pollTryOn(client, store, "session-1", "color-task", "haircolor")).toEqual({ status: "success" });
+    expect(calls).toEqual([{ fn: "getTask", args: ["haircolor", "color-task"] }]);
+    expect(saved).toEqual([["session-1", "color-task", url]]);
+  });
+
+  it("says the colour failed, not the photo", async () => {
+    const { client } = fakeClient({ outcomes: [{ status: "error", taskId: "t", error: "error_inference" }] });
+    const result = await pollTryOn(client, fakeStore().store, "s", "t", "haircolor");
+    expect(result).toMatchObject({ status: "error", code: "error_inference" });
+    expect(result.status === "error" && result.message).toMatch(/colour/);
   });
 });

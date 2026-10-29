@@ -2,15 +2,29 @@
 
 import { useEffect, useRef, useState } from "react";
 import { capture, CameraKitError, hairShots, loadCameraKit, type HairShots, type Shot } from "@/lib/camera-kit/camera-kit";
+import { lightness } from "@/lib/checks/lace";
 import { formatKes, type Wig } from "@/lib/shop/demo";
-import { requestTryOn } from "@/lib/tryon/client";
+import { requestColorway, requestHairType, requestTone, requestTryOn, type TaskRef, type TryOnProgress } from "@/lib/tryon/client";
 import { BeforeAfter } from "./before-after";
+import { BlendCheck, toHairJpegs, type HairState } from "./blend-check";
+import { LaceMatch, toToneJpeg, type ToneState } from "./lace-match";
+import { Swatch } from "./swatch";
 
 const MAX_SIDE = 1024;
 
-type State = { step: "idle" } | { step: "working"; label: string; detail?: string } | { step: "failed"; message: string };
+type State =
+  | { step: "idle" }
+  | { step: "working"; label: string; detail?: string }
+  /** `retry` repeats what failed; without it, Try again redoes the try-on. */
+  | { step: "failed"; message: string; retry?: () => void };
 
-/** What the camera took. Only the front shot is sent for now; the checks (step E) use the rest. */
+/** A finished try-on: where to show it, and the task a colour request points back at. */
+interface Result {
+  url: string;
+  task: TaskRef;
+}
+
+/** What the camera took. The front shot makes the preview; all three feed the blend check, the close-up the lace match. */
 interface Captures {
   hair: HairShots;
   tone: Shot | null;
@@ -64,13 +78,21 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
   const [selfie, setSelfie] = useState<Selfie | null>(null);
   const [wigId, setWigId] = useState(firstWigId);
   // Finished previews by wig id, so going back to a wig already tried costs nothing.
-  const [results, setResults] = useState<Record<string, string>>({});
+  const [results, setResults] = useState<Record<string, Result>>({});
+  // The same for colours, by "<wig id>/<colorway id>". null = the wig as photographed.
+  const [colorResults, setColorResults] = useState<Record<string, string>>({});
+  const [colorwayId, setColorwayId] = useState<string | null>(null);
+  const [tone, setTone] = useState<ToneState>({ step: "idle" });
+  const [hair, setHair] = useState<HairState>({ step: "idle" });
   const [captures, setCaptures] = useState<Captures | null>(null);
   const [debug, setDebug] = useState(false);
   const cancelled = useRef(false);
 
   const wig = wigs.find((w) => w.id === wigId) ?? wigs[0];
-  const result = results[wig.id];
+  const result = results[wig.id]?.url;
+  const colorway = wig.colorways.find((c) => c.id === colorwayId) ?? null;
+  // What the slider shows: the chosen colour once it's ready, else the wig as photographed.
+  const shown = (colorway && colorResults[`${wig.id}/${colorway.id}`]) || result;
 
   useEffect(() => {
     cancelled.current = false;
@@ -140,11 +162,15 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
     }
     setSelfie(next);
     setResults({});
+    setColorResults({});
+    setTone({ step: "idle" });
+    setHair({ step: "idle" });
     await tryWig(firstWigId, next, {});
   }
 
   async function tryWig(id: string, photo = selfie, done = results) {
     setWigId(id);
+    setColorwayId(null);
     if (!photo || done[id]) return setState({ step: "idle" });
     const outcome = await requestTryOn(photo.blob, id, {
       isCancelled: () => cancelled.current,
@@ -156,7 +182,7 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
         ),
     });
     if (outcome.ok) {
-      setResults((r) => ({ ...r, [id]: outcome.resultUrl }));
+      setResults((r) => ({ ...r, [id]: { url: outcome.resultUrl, task: outcome.task } }));
       return setState({ step: "idle" });
     }
     if (outcome.code === "cancelled") return;
@@ -164,9 +190,86 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
     setState({ step: "failed", message: outcome.message });
   }
 
+  /** Shows the current wig's try-on in one of its colours (null = as photographed). */
+  async function showColorway(id: string | null) {
+    const tryOn = results[wig.id];
+    const key = `${wig.id}/${id}`;
+    if (!tryOn || id === null || colorResults[key]) {
+      setColorwayId(id);
+      return setState({ step: "idle" });
+    }
+    const previous = colorwayId;
+    setColorwayId(id);
+    const outcome = await requestColorway(tryOn.task, wig.id, id, {
+      isCancelled: () => cancelled.current,
+      onProgress: (p: TryOnProgress) =>
+        setState(
+          p.stage === "starting"
+            ? { step: "working", label: "Getting the colour ready…" }
+            : { step: "working", label: `Colouring the wig… ${p.seconds} s` },
+        ),
+    });
+    if (outcome.ok) {
+      setColorResults((r) => ({ ...r, [key]: outcome.resultUrl }));
+      return setState({ step: "idle" });
+    }
+    if (outcome.code === "cancelled") return;
+    if (outcome.code === "access_code") setNeedsCode(true);
+    setColorwayId(previous);
+    setState({ step: "failed", message: outcome.message, retry: () => void showColorway(id) });
+  }
+
+  /** Reads the skin tone from the close-up for the lace match (20 units, once per session). */
+  async function checkLace() {
+    const closeUp = captures?.tone?.image;
+    if (!closeUp) return;
+    let photo: Blob;
+    try {
+      setTone({ step: "working", label: "Preparing the close-up…" });
+      photo = await toToneJpeg(closeUp);
+    } catch {
+      return setTone({ step: "failed", message: "We couldn't read the close-up photo. Take the photos again." });
+    }
+    const outcome = await requestTone(photo, {
+      isCancelled: () => cancelled.current,
+      onProgress: (p) =>
+        setTone({ step: "working", label: p.stage === "starting" ? "Sending the close-up…" : `Reading your skin tone… ${p.seconds} s` }),
+    });
+    if (outcome.ok) return setTone({ step: "done", skinHex: outcome.skinHex, earlier: outcome.earlier });
+    if (outcome.code === "cancelled") return;
+    if (outcome.code === "access_code") setNeedsCode(true);
+    setTone({ step: "failed", message: outcome.message });
+  }
+
+  /** Reads the hair type from the three photos for the blend check (2 units, once per session). */
+  async function checkBlend() {
+    const shots = captures?.hair;
+    if (!shots) return;
+    let photos: Awaited<ReturnType<typeof toHairJpegs>>;
+    try {
+      setHair({ step: "working", label: "Preparing your photos…" });
+      photos = await toHairJpegs(shots);
+    } catch {
+      return setHair({ step: "failed", message: "We couldn't read your photos. Take the photos again." });
+    }
+    const outcome = await requestHairType(photos, {
+      isCancelled: () => cancelled.current,
+      onProgress: (p) =>
+        setHair({ step: "working", label: p.stage === "starting" ? "Sending your photos…" : `Reading your hair type… ${p.seconds} s` }),
+    });
+    if (outcome.ok) return setHair({ step: "done", hair: outcome.hair, earlier: outcome.earlier });
+    if (outcome.code === "cancelled") return;
+    if (outcome.code === "access_code") setNeedsCode(true);
+    setHair({ step: "failed", message: outcome.message });
+  }
+
   function startOver() {
     setSelfie(null);
     setResults({});
+    setColorResults({});
+    setColorwayId(null);
+    setTone({ step: "idle" });
+    setHair({ step: "idle" });
     setCaptures(null);
     setWigId(firstWigId);
     setMode("camera");
@@ -216,28 +319,28 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
             <p className="font-medium">{formatKes(wig.priceKes)}</p>
           </div>
 
-          {result ? (
-            <BeforeAfter
-              before={selfie.url}
-              after={result}
-              afterAlt={`You wearing the ${wig.name} wig, preview`}
-              width={selfie.width}
-              height={selfie.height}
-            />
-          ) : (
-            <div className="relative overflow-hidden rounded-md" style={{ aspectRatio: `${selfie.width} / ${selfie.height}` }}>
-              {/* Local object URL: next/image can't optimise it, and shouldn't. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+          <div className="relative overflow-hidden rounded-md" style={{ aspectRatio: `${selfie.width} / ${selfie.height}` }}>
+            {shown ? (
+              <BeforeAfter
+                before={selfie.url}
+                after={shown}
+                afterAlt={`You wearing the ${wig.name} wig${colorway && shown !== result ? ` in ${colorway.name}` : ""}, preview`}
+                width={selfie.width}
+                height={selfie.height}
+              />
+            ) : (
+              // Local object URL: next/image can't optimise it, and shouldn't.
+              // eslint-disable-next-line @next/next/no-img-element
               <img src={selfie.url} alt="Your photo" className="absolute inset-0 h-full w-full object-cover" />
-              {state.step === "working" && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/55 p-4 text-center text-white">
-                  <span aria-hidden className="mb-2 h-8 w-8 animate-spin rounded-full border-4 border-white/30 border-t-white" />
-                  <p className="font-medium">{state.label}</p>
-                  {state.detail && <p className="text-sm text-white/80">{state.detail}</p>}
-                </div>
-              )}
-            </div>
-          )}
+            )}
+            {state.step === "working" && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/55 p-4 text-center text-white">
+                <span aria-hidden className="mb-2 h-8 w-8 animate-spin rounded-full border-4 border-white/30 border-t-white" />
+                <p className="font-medium">{state.label}</p>
+                {state.detail && <p className="text-sm text-white/80">{state.detail}</p>}
+              </div>
+            )}
+          </div>
 
           {result && (
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
@@ -248,12 +351,65 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
             {state.step === "working" ? state.label : result ? `Preview of ${wig.name} ready.` : ""}
           </p>
 
+          {result && (
+            <div className="flex flex-col gap-2">
+              <h3 className="text-sm font-medium">Colour</h3>
+              <ul className="flex flex-wrap gap-2">
+                {[null, ...wig.colorways].map((c) => (
+                  <li key={c?.id ?? "photo"}>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      aria-pressed={(c?.id ?? null) === colorwayId}
+                      onClick={() => void showColorway(c?.id ?? null)}
+                      className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm disabled:opacity-50 ${
+                        (c?.id ?? null) === colorwayId
+                          ? "border-zinc-900 ring-1 ring-zinc-900 dark:border-zinc-100 dark:ring-zinc-100"
+                          : "border-zinc-300 dark:border-zinc-700"
+                      }`}
+                    >
+                      {c && <Swatch hex={c.hex} className="h-4 w-4" />}
+                      {c ? `${c.code} ${c.name}` : "As photographed"}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {colorway && (
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  Colours look different on every screen. Ask the seller for a daylight photo of {colorway.code} before you order.
+                </p>
+              )}
+            </div>
+          )}
+
+          {result && (
+            <LaceMatch
+              shades={wig.laceShades}
+              hasCloseUp={Boolean(captures?.tone)}
+              tone={tone}
+              onCheck={() => void checkLace()}
+              disabled={busy || tone.step === "working"}
+            />
+          )}
+
+          {result && (
+            <BlendCheck
+              texture={wig.texture}
+              textureRange={wig.textureRange}
+              constructions={wig.constructions}
+              hasPhotos={Boolean(captures)}
+              hair={hair}
+              onCheck={() => void checkBlend()}
+              disabled={busy || hair.step === "working"}
+            />
+          )}
+
           {state.step === "failed" && (
             <div className="flex flex-col gap-2">
               <p role="alert" className="text-sm text-red-700 dark:text-red-400">
                 {state.message}
               </p>
-              <button type="button" className={button} onClick={() => void tryWig(wig.id)}>
+              <button type="button" className={button} onClick={state.retry ?? (() => void tryWig(wig.id))}>
                 Try again
               </button>
             </div>
@@ -341,13 +497,30 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
       {/* Camera Kit draws its own UI here; React must leave this div's children alone. */}
       <div id="YMK-module" />
 
-      {debug && captures && <CaptureDetails captures={captures} result={result} />}
+      {debug && captures && (
+        <CaptureDetails
+          captures={captures}
+          result={shown}
+          skinHex={tone.step === "done" ? tone.skinHex : undefined}
+          hairType={hair.step === "done" ? `${hair.hair.from} to ${hair.hair.to} (${hair.hair.term})` : undefined}
+        />
+      )}
     </div>
   );
 }
 
 /** Testing aid (?debug): what Camera Kit returned, measured from the photos themselves. */
-function CaptureDetails({ captures, result }: { captures: Captures; result: string | undefined }) {
+function CaptureDetails({
+  captures,
+  result,
+  skinHex,
+  hairType,
+}: {
+  captures: Captures;
+  result: string | undefined;
+  skinHex?: string;
+  hairType?: string;
+}) {
   const [rows, setRows] = useState<{ label: string; url: string; text: string }[]>([]);
   const [resultSize, setResultSize] = useState<string | null>(null);
 
@@ -398,6 +571,13 @@ function CaptureDetails({ captures, result }: { captures: Captures; result: stri
           />
         </p>
       )}
+      {skinHex && (
+        <p>
+          Skin reading: {skinHex} (lightness {lightness(skinHex).toFixed(1)})
+        </p>
+      )}
+      {hairType && <p>Hair reading: {hairType}</p>}
+      <SwatchCheck colours={[["1B off black", "#1c1613"], ...(skinHex ? [["Skin reading", skinHex] as [string, string]] : [])]} />
       {rows.map((row) => (
         <figure key={row.label} className="flex flex-col gap-1">
           <figcaption>{row.text}</figcaption>
@@ -406,5 +586,62 @@ function CaptureDetails({ captures, result }: { captures: Captures; result: stri
         </figure>
       ))}
     </section>
+  );
+}
+
+/**
+ * Testing aid (?debug): the same colour drawn four ways, to see which ones a browser's forced
+ * dark mode leaves alone (Samsung Internet recolours CSS colours).
+ */
+function SwatchCheck({ colours }: { colours: [string, string][] }) {
+  const box = "inline-block h-6 w-6 border border-black/10";
+  return (
+    <table className="text-left">
+      <thead>
+        <tr>
+          <th className="pr-2 font-normal">Colour</th>
+          <th className="pr-2 font-normal">CSS</th>
+          <th className="pr-2 font-normal">PNG</th>
+          <th className="pr-2 font-normal">SVG</th>
+          <th className="font-normal">Canvas</th>
+        </tr>
+      </thead>
+      <tbody>
+        {colours.map(([label, hex]) => (
+          <tr key={label}>
+            <td className="pr-2">
+              {label} {hex}
+            </td>
+            <td className="pr-2">
+              <span className={box} style={{ backgroundColor: hex }} />
+            </td>
+            <td className="pr-2">
+              <Swatch hex={hex} className="h-6 w-6" />
+            </td>
+            <td className="pr-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                alt=""
+                className={box}
+                src={`data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect width="1" height="1" fill="${hex}"/></svg>`)}`}
+              />
+            </td>
+            <td>
+              <canvas
+                width={1}
+                height={1}
+                className={box}
+                ref={(canvas) => {
+                  const g = canvas?.getContext("2d");
+                  if (!g) return;
+                  g.fillStyle = hex;
+                  g.fillRect(0, 0, 1, 1);
+                }}
+              />
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }

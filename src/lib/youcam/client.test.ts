@@ -84,6 +84,33 @@ describe("tasks", () => {
     expect(JSON.parse(String(calls[0].body))).toEqual({ src_file_ids: ["front", "right", "left"] });
   });
 
+  it("recolours a stored result with one of our colours", async () => {
+    const { client, calls } = fakeApi({ "POST /s2s/v2.0/task/hair-color": [ok(fx.taskStarted)] });
+    await client.startTask("haircolor", {
+      src_file_id: "result",
+      pattern: { name: "full" },
+      palettes: [{ color: "#4a2c21", color_intensity: 80 }],
+    });
+    expect(JSON.parse(String(calls[0].body))).toEqual({
+      src_file_id: "result",
+      pattern: { name: "full" },
+      palettes: [{ color: "#4a2c21", color_intensity: 80 }],
+    });
+  });
+
+  it("returns the Hair Color result link and reports its errors", async () => {
+    const { client } = fakeApi({
+      "GET /s2s/v2.0/task/hair-color/a": [ok(fx.taskRunning), ok(fx.hairColorSuccess)],
+      "GET /s2s/v2.0/task/hair-color/b": [ok(fx.hairColorError)],
+    });
+    expect(await client.waitForTask("haircolor", "a")).toEqual({
+      status: "success",
+      taskId: "a",
+      results: { url: "https://results.example.test/colorway.jpg" },
+    });
+    expect(await client.waitForTask("haircolor", "b")).toMatchObject({ status: "error", error: "error_below_min_image_size" });
+  });
+
   it("polls every 3 seconds until success", async () => {
     const { client, sleeps } = fakeApi({
       "GET /s2s/v2.1/task/hair-transfer/task-123": [ok(fx.taskRunning), ok(fx.taskRunning), ok(fx.hairstyleSuccess)],

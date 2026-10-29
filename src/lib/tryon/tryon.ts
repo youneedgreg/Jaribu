@@ -1,10 +1,12 @@
 import { jpegSize } from "../images/jpeg";
-import type { ResultStore } from "../results/store";
-import { TASK_APIS } from "../youcam/apis";
+import { RESULT_MAX_BYTES, type ResultStore } from "../results/store";
+import type { Colorway } from "../shop/demo";
+import { TASK_APIS, type TaskApi } from "../youcam/apis";
 import type { YouCamClient } from "../youcam/client";
 
 // The try-on flow without Next.js: check the two photos, start a Hair Style task, and poll it
-// once per request (the browser polls us every 3 s, so no function waits on YouCam).
+// once per request (the browser polls us every 3 s, so no function waits on YouCam). A finished
+// try-on can then be recoloured with Hair Color, which is started and polled the same way.
 
 /** Hair Style takes JPG only, long side ≤ 1024 px. */
 export const TRYON_MAX_SIDE = 1024;
@@ -50,19 +52,79 @@ export async function startTryOn(client: Client, selfie: Uint8Array<ArrayBuffer>
   return client.startTask("hairstyle", { src_file_id: srcFileId, ref_file_id: refFileId });
 }
 
+/** Hair Color's input limits (docs, 27 Oct). The docs disagree on the maximum, so stay under both readings. */
+export const HAIR_COLOR_MIN_SIDE = 320;
+export const HAIR_COLOR_MAX_WIDTH = 1920;
+export const HAIR_COLOR_MAX_HEIGHT = 1080;
+
+export class RecolorError extends Error {
+  constructor(
+    readonly code: "not_found" | "expired" | "unsupported",
+    message: string,
+  ) {
+    super(message);
+    this.name = "RecolorError";
+  }
+}
+
+/**
+ * Recolours a stored try-on result in one of the wig's colours. The result is private, so
+ * YouCam can't fetch it by link: it goes up through the File API like the selfie did.
+ * Returns the Hair Color task id.
+ */
+export async function startRecolor(
+  client: Client,
+  store: Pick<ResultStore, "open">,
+  sessionId: string,
+  tryOnTaskId: string,
+  colorway: Pick<Colorway, "hex">,
+): Promise<string> {
+  const opened = await store.open(sessionId, tryOnTaskId);
+  if (opened.status === "missing") throw new RecolorError("not_found", "We couldn't find this preview. Please start again.");
+  if (opened.status === "expired") throw new RecolorError("expired", "Previews are deleted after 24 hours. Please start again.");
+  const bytes = new Uint8Array(await new Response(opened.stream).arrayBuffer());
+
+  // YouCam's try-on results are JPGs the size of the selfie (≤ 1024 px), so this only catches surprises.
+  const size = bytes.byteLength <= RESULT_MAX_BYTES ? jpegSize(bytes) : null;
+  if (
+    !size ||
+    Math.min(size.width, size.height) < HAIR_COLOR_MIN_SIDE ||
+    size.width >= HAIR_COLOR_MAX_WIDTH ||
+    size.height >= HAIR_COLOR_MAX_HEIGHT
+  ) {
+    throw new RecolorError("unsupported", "This preview can't be shown in other colours. Try taking the photos again.");
+  }
+
+  await client.ensureUnits(TASK_APIS.haircolor.units);
+  const fileId = await client.uploadFile({ bytes, fileName: "tryon.jpg", contentType: "image/jpg" });
+  return client.startTask("haircolor", { src_file_id: fileId, pattern: { name: "full" }, palettes: [{ color: colorway.hex }] });
+}
+
+/** The tasks whose results a shopper sees: the try-on and its colours. */
+export type ResultApi = Extract<TaskApi, "hairstyle" | "haircolor">;
+
 export type TryOnStatus =
   | { status: "running" }
   | { status: "success" }
   | { status: "error"; code: string | null; message: string };
 
 // Placeholder wording until step G writes a message for every known code.
-const FAILED = "This photo didn't work for a preview. Try a front-facing photo in daylight, with your shoulders and some hair showing.";
+const FAILED: Record<ResultApi, string> = {
+  hairstyle: "This photo didn't work for a preview. Try a front-facing photo in daylight, with your shoulders and some hair showing.",
+  haircolor: "This colour didn't work on the preview. Try another colour, or try again in a minute.",
+};
 
 /** One look at the task. On success the result is copied to Blob before we say so. */
-export async function pollTryOn(client: Client, store: Pick<ResultStore, "save">, sessionId: string, taskId: string): Promise<TryOnStatus> {
-  const outcome = await client.getTask("hairstyle", taskId);
+export async function pollTryOn(
+  client: Client,
+  store: Pick<ResultStore, "save">,
+  sessionId: string,
+  taskId: string,
+  api: ResultApi = "hairstyle",
+): Promise<TryOnStatus> {
+  const outcome = await client.getTask(api, taskId);
   if (outcome.status === "running") return { status: "running" };
-  if (outcome.status === "error") return { status: "error", code: outcome.error, message: FAILED };
+  if (outcome.status === "error") return { status: "error", code: outcome.error, message: FAILED[api] };
   if (outcome.status === "success") {
     await store.save(sessionId, taskId, outcome.results.url);
     return { status: "success" };

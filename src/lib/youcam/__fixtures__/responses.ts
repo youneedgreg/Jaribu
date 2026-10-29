@@ -42,6 +42,22 @@ export const hairstyleSuccess = {
   data: { task_status: "success", error: null, results: { url: "https://results.example.test/tryon.jpg" } },
 };
 
+// docs: Hair Color returns one result link, like Hair Style (no live run yet)
+export const hairColorSuccess = {
+  status: 200,
+  data: { task_status: "success", error: null, results: { url: "https://results.example.test/colorway.jpg" } },
+};
+
+// docs: error codes from the Hair Color page
+export const hairColorError = {
+  status: 200,
+  data: {
+    task_status: "error",
+    error: "error_below_min_image_size",
+    error_message: "the size of the source image is smaller than minimum (expect: width >= 320px, height >= 320px)",
+  },
+};
+
 // live
 export const toneSuccess = {
   status: 200,
