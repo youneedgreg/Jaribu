@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
+import { databaseHooks } from "./auth-hooks";
 import { db } from "./db";
 
 // No `import "server-only"` here: the Better Auth CLI (`npx auth migrate`)
@@ -20,6 +21,7 @@ export const auth = betterAuth({
   database: db(),
   baseURL: { allowedHosts: ALLOWED_HOSTS, fallback: "https://tryjaribu.vercel.app" },
   emailAndPassword: { enabled: true, requireEmailVerification: false },
+  databaseHooks,
   telemetry: { enabled: false },
   // nextCookies must stay last: it lets server actions set the session cookie.
   plugins: [nextCookies()],
