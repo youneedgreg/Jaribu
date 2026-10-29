@@ -14,7 +14,7 @@ describe("demo shop", () => {
   });
 
   it("credits every photo on Unsplash", () => {
-    for (const wig of DEMO_SHOP.wigs) expect(wig.credit.url).toMatch(/^https:\/\/unsplash\.com\/photos\//);
+    for (const wig of DEMO_SHOP.wigs) expect(wig.credit?.url).toMatch(/^https:\/\/unsplash\.com\/photos\//);
   });
 
   it("has unique, URL-safe ids", () => {

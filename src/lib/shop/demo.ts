@@ -15,24 +15,30 @@ export interface Wig {
   constructions: Construction[];
   length: string;
   priceKes: number;
-  /** Public path of the 1024-px JPG, also sent to YouCam as the try-on reference. */
+  /** Path of the JPG (long side ≤ 1024 px), also sent to YouCam as the try-on reference: under
+   * /wigs/ for demo wigs (in public/), /api/wigs/<id>/photo for sellers' (in Blob). */
   photo: string;
   photoWidth: number;
   photoHeight: number;
-  credit: { name: string; url: string };
+  /** Who took the photo: demo wigs only (Unsplash). */
+  credit?: { name: string; url: string };
   colorways: Colorway[];
   laceShades: LaceShade[];
 }
 
 export interface Shop {
+  /** The shop link: /s/<id>. */
   id: string;
   name: string;
+  /** True for the demo shop, whose wigs aren't for sale. */
+  sample: boolean;
   wigs: Wig[];
 }
 
 export const DEMO_SHOP: Shop = {
   id: "demo",
   name: "Jaribu demo shop",
+  sample: true,
   wigs: [
     {
       id: "long-straight",

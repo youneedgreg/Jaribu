@@ -37,13 +37,15 @@ export default async function WigPage({ params }: PageProps<"/w/[wigId]">) {
           loading="eager"
           className="w-full rounded-md"
         />
-        <figcaption className="text-xs text-zinc-500">
-          Photo:{" "}
-          <a href={wig.credit.url} className="underline underline-offset-2">
-            {wig.credit.name} on Unsplash
-          </a>
-          . Sample listing, not a real seller.
-        </figcaption>
+        {wig.credit && (
+          <figcaption className="text-xs text-zinc-500">
+            Photo:{" "}
+            <a href={wig.credit.url} className="underline underline-offset-2">
+              {wig.credit.name} on Unsplash
+            </a>
+            . Sample listing, not a real seller.
+          </figcaption>
+        )}
       </figure>
       <div className="flex items-baseline justify-between gap-4">
         <h1 className="text-2xl font-semibold tracking-tight">{wig.name}</h1>
