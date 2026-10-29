@@ -8,6 +8,7 @@ import { requestColorway, requestHairType, requestTone, requestTryOn, type TaskR
 import { BeforeAfter } from "./before-after";
 import { BlendCheck, toHairJpegs, type HairState } from "./blend-check";
 import { LaceMatch, toToneJpeg, type ToneState } from "./lace-match";
+import { OrderPanel, type ShownPreview } from "./order-panel";
 import { Swatch } from "./swatch";
 
 const MAX_SIDE = 1024;
@@ -69,7 +70,8 @@ function cameraMessage(code: string): string {
   }
 }
 
-export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string }) {
+/** `ordersOpen`: the shop takes WhatsApp orders (false for the demo shop). */
+export function TryOn({ wigs, firstWigId, ordersOpen }: { wigs: Wig[]; firstWigId: string; ordersOpen: boolean }) {
   const [state, setState] = useState<State>({ step: "idle" });
   // null while we ask the server whether this device already entered the code.
   const [needsCode, setNeedsCode] = useState<boolean | null>(null);
@@ -80,7 +82,7 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
   // Finished previews by wig id, so going back to a wig already tried costs nothing.
   const [results, setResults] = useState<Record<string, Result>>({});
   // The same for colours, by "<wig id>/<colorway id>". null = the wig as photographed.
-  const [colorResults, setColorResults] = useState<Record<string, string>>({});
+  const [colorResults, setColorResults] = useState<Record<string, Result>>({});
   const [colorwayId, setColorwayId] = useState<string | null>(null);
   const [tone, setTone] = useState<ToneState>({ step: "idle" });
   const [hair, setHair] = useState<HairState>({ step: "idle" });
@@ -92,7 +94,13 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
   const result = results[wig.id]?.url;
   const colorway = wig.colorways.find((c) => c.id === colorwayId) ?? null;
   // What the slider shows: the chosen colour once it's ready, else the wig as photographed.
-  const shown = (colorway && colorResults[`${wig.id}/${colorway.id}`]) || result;
+  const colorResult = colorway ? colorResults[`${wig.id}/${colorway.id}`] : undefined;
+  const shown = colorResult?.url || result;
+  const shownPreview: ShownPreview | null = colorResult
+    ? { ...colorResult, api: "haircolor" }
+    : results[wig.id]
+      ? { ...results[wig.id], api: "hairstyle" }
+      : null;
 
   useEffect(() => {
     cancelled.current = false;
@@ -210,7 +218,7 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
         ),
     });
     if (outcome.ok) {
-      setColorResults((r) => ({ ...r, [key]: outcome.resultUrl }));
+      setColorResults((r) => ({ ...r, [key]: { url: outcome.resultUrl, task: outcome.task } }));
       return setState({ step: "idle" });
     }
     if (outcome.code === "cancelled") return;
@@ -401,6 +409,19 @@ export function TryOn({ wigs, firstWigId }: { wigs: Wig[]; firstWigId: string })
               hair={hair}
               onCheck={() => void checkBlend()}
               disabled={busy || hair.step === "working"}
+            />
+          )}
+
+          {shownPreview && (
+            <OrderPanel
+              key={wig.id}
+              wig={wig}
+              ordersOpen={ordersOpen}
+              shown={shownPreview}
+              colorway={colorResult ? colorway : null}
+              tone={tone}
+              hair={hair}
+              disabled={busy}
             />
           )}
 

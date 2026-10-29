@@ -41,7 +41,7 @@ export default async function TryPage({ params }: PageProps<"/w/[wigId]/try">) {
         match, and your side photos only if you check the blend. YouCam keeps uploaded photos for up to 30 days. Your
         result is shown for 24 hours.
       </p>
-      <TryOn wigs={shop.wigs} firstWigId={wig.id} />
+      <TryOn wigs={shop.wigs} firstWigId={wig.id} ordersOpen={!shop.sample && Boolean(shop.whatsapp)} />
     </main>
   );
 }
