@@ -10,6 +10,9 @@ export default function Home() {
       <Link href="/s/demo" className="self-start text-base font-medium underline underline-offset-4">
         See the demo shop
       </Link>
+      <Link href="/how-well-it-works" className="self-start text-base font-medium underline underline-offset-4">
+        How well it works
+      </Link>
     </main>
   );
 }
