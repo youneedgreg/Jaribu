@@ -1,6 +1,19 @@
 import "server-only";
 import { cookies } from "next/headers";
-import { decodeSession, encodeSession, newSession, SESSION_COOKIE, SESSION_COOKIE_OPTIONS, type Session } from "./session";
+import {
+  countUsage,
+  decodeSession,
+  decodeUsage,
+  encodeSession,
+  encodeUsage,
+  newSession,
+  SESSION_COOKIE,
+  SESSION_COOKIE_OPTIONS,
+  USAGE_COOKIE,
+  type LimitedApi,
+  type Session,
+  type Usage,
+} from "./session";
 
 /** The shopper's session from the cookie, or null if there's none or it has expired. */
 export async function currentSession(): Promise<Session | null> {
@@ -15,4 +28,15 @@ export async function currentOrNewSession(): Promise<Session> {
   const session = newSession();
   (await cookies()).set(SESSION_COOKIE, encodeSession(session, process.env.SESSION_SECRET), SESSION_COOKIE_OPTIONS);
   return session;
+}
+
+/** How many tasks this session has started. */
+export async function usageOf(session: Session): Promise<Usage> {
+  return decodeUsage((await cookies()).get(USAGE_COOKIE)?.value, session.id, process.env.SESSION_SECRET);
+}
+
+/** Counts one more started task. Route handlers only. */
+export async function recordUsage(session: Session, usage: Usage, api: LimitedApi): Promise<void> {
+  const value = encodeUsage(session.id, countUsage(usage, api), process.env.SESSION_SECRET);
+  (await cookies()).set(USAGE_COOKIE, value, SESSION_COOKIE_OPTIONS);
 }

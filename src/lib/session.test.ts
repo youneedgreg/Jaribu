@@ -1,5 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { decodeSession, encodeSession, newSession, SESSION_MAX_AGE_MS, taskTicket, taskTicketMatches } from "./session";
+import {
+  countUsage,
+  decodeSession,
+  decodeUsage,
+  encodeSession,
+  encodeUsage,
+  limitMessage,
+  newSession,
+  reachedLimit,
+  SESSION_LIMITS,
+  SESSION_MAX_AGE_MS,
+  taskTicket,
+  taskTicketMatches,
+} from "./session";
 
 const SECRET = "test-secret-that-is-at-least-32-characters";
 
@@ -65,5 +78,39 @@ describe("task ticket", () => {
 
   it.each([null, undefined, "", "short"])("rejects %j", (ticket) => {
     expect(taskTicketMatches(ticket, "hairstyle", "session-a", "task-1", SECRET)).toBe(false);
+  });
+});
+
+describe("session limits", () => {
+  const ID = "a".repeat(22);
+  const none = { hairstyle: 0, haircolor: 0 };
+
+  it("round-trips the counts for the same session", () => {
+    const usage = countUsage(countUsage(none, "hairstyle"), "haircolor");
+    expect(decodeUsage(encodeUsage(ID, usage, SECRET), ID, SECRET)).toEqual({ hairstyle: 1, haircolor: 1 });
+  });
+
+  it("starts from zero without a cookie, or with a forged or edited one", () => {
+    const value = encodeUsage(ID, { hairstyle: 9, haircolor: 2 }, SECRET);
+    expect(decodeUsage(undefined, ID, SECRET)).toEqual(none);
+    expect(decodeUsage("junk", ID, SECRET)).toEqual(none);
+    expect(decodeUsage(value.replace(/^9/, "1"), ID, SECRET)).toEqual(none);
+    expect(decodeUsage(encodeUsage(ID, { hairstyle: 9, haircolor: 2 }, "another-secret-that-is-at-least-32-chars"), ID, SECRET)).toEqual(none);
+  });
+
+  it("doesn't carry counts over to another session", () => {
+    expect(decodeUsage(encodeUsage(ID, { hairstyle: 9, haircolor: 2 }, SECRET), "b".repeat(22), SECRET)).toEqual(none);
+  });
+
+  it("stops at each api's limit", () => {
+    expect(reachedLimit({ hairstyle: SESSION_LIMITS.hairstyle - 1, haircolor: 0 }, "hairstyle")).toBe(false);
+    expect(reachedLimit({ hairstyle: SESSION_LIMITS.hairstyle, haircolor: 0 }, "hairstyle")).toBe(true);
+    expect(reachedLimit({ hairstyle: SESSION_LIMITS.hairstyle, haircolor: 0 }, "haircolor")).toBe(false);
+    expect(reachedLimit({ hairstyle: 0, haircolor: SESSION_LIMITS.haircolor }, "haircolor")).toBe(true);
+  });
+
+  it("says in plain words what happened and what to do", () => {
+    expect(limitMessage("hairstyle")).toContain("come back tomorrow");
+    expect(limitMessage("haircolor")).toContain("colours");
   });
 });

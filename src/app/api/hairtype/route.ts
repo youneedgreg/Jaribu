@@ -1,4 +1,3 @@
-import { hasAccessPass } from "@/lib/access-cookie";
 import { HairPhotoError, pollHairType, startHairType } from "@/lib/checks/hair";
 import { failure, json, logError } from "@/lib/http";
 import { results } from "@/lib/results/server";
@@ -17,7 +16,6 @@ const SIDES = ["front", "right", "left"] as const;
 export async function POST(request: Request) {
   const session = await currentSession();
   if (!session) return failure(401, "session_ended", "This preview has ended. Please start again.");
-  if (!(await hasAccessPass())) return failure(401, "access_code", "Enter the access code again to keep trying.");
   if (Number(request.headers.get("content-length") ?? 0) > 3 * PHOTO_MAX_BYTES + 64 * 1024) {
     return failure(413, "too_large", "The photos are too large.");
   }

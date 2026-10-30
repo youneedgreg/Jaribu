@@ -55,8 +55,6 @@ async function toTryOnJpeg(photo: Blob): Promise<Omit<Selfie, "url">> {
   return { blob, width: canvas.width, height: canvas.height };
 }
 
-const errorOf = (body: unknown) => (body as { error?: { code?: string; message?: string } } | null)?.error;
-const ON_THIS_PHONE = "Something went wrong on this phone. Check the connection and try again.";
 
 function cameraMessage(code: string): string {
   switch (code) {
@@ -74,8 +72,6 @@ function cameraMessage(code: string): string {
 /** `ordersOpen`: the shop takes WhatsApp orders (false for the demo shop). */
 export function TryOn({ wigs, firstWigId, ordersOpen }: { wigs: Wig[]; firstWigId: string; ordersOpen: boolean }) {
   const [state, setState] = useState<State>({ step: "idle" });
-  // null while we ask the server whether this device already entered the code.
-  const [needsCode, setNeedsCode] = useState<boolean | null>(null);
   const [agreed, setAgreed] = useState(false);
   const [mode, setMode] = useState<"camera" | "upload">("camera");
   const [cameraNote, setCameraNote] = useState<string | null>(null);
@@ -106,10 +102,6 @@ export function TryOn({ wigs, firstWigId, ordersOpen }: { wigs: Wig[]; firstWigI
 
   useEffect(() => {
     cancelled.current = false;
-    fetch("/api/access")
-      .then((res) => res.json())
-      .then((body: { granted?: boolean }) => !cancelled.current && setNeedsCode(!body.granted))
-      .catch(() => !cancelled.current && setNeedsCode(true));
     return () => {
       cancelled.current = true;
       (window as Window & { YMK?: { close(): void } }).YMK?.close();
@@ -117,25 +109,6 @@ export function TryOn({ wigs, firstWigId, ordersOpen }: { wigs: Wig[]; firstWigI
   }, []);
 
   useEffect(() => () => void (selfie && URL.revokeObjectURL(selfie.url)), [selfie]);
-
-  async function checkCode(form: HTMLFormElement) {
-    const code = new FormData(form).get("accessCode");
-    setState({ step: "working", label: "Checking the code…" });
-    try {
-      const res = await fetch("/api/access", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ code: typeof code === "string" ? code : "" }),
-      });
-      if (!res.ok) {
-        return setState({ step: "failed", message: errorOf(await res.json().catch(() => null))?.message ?? "We couldn't check the code." });
-      }
-      setNeedsCode(false);
-      setState({ step: "idle" });
-    } catch {
-      setState({ step: "failed", message: ON_THIS_PHONE });
-    }
-  }
 
   async function startCamera() {
     setCameraNote(null);
@@ -196,7 +169,6 @@ export function TryOn({ wigs, firstWigId, ordersOpen }: { wigs: Wig[]; firstWigI
       return setState({ step: "idle" });
     }
     if (outcome.code === "cancelled") return;
-    if (outcome.code === "access_code") setNeedsCode(true);
     setState({ step: "failed", message: outcome.message });
   }
 
@@ -224,7 +196,6 @@ export function TryOn({ wigs, firstWigId, ordersOpen }: { wigs: Wig[]; firstWigI
       return setState({ step: "idle" });
     }
     if (outcome.code === "cancelled") return;
-    if (outcome.code === "access_code") setNeedsCode(true);
     setColorwayId(previous);
     setState({ step: "failed", message: outcome.message, retry: () => void showColorway(id) });
   }
@@ -247,7 +218,6 @@ export function TryOn({ wigs, firstWigId, ordersOpen }: { wigs: Wig[]; firstWigI
     });
     if (outcome.ok) return setTone({ step: "done", skinHex: outcome.skinHex, earlier: outcome.earlier });
     if (outcome.code === "cancelled") return;
-    if (outcome.code === "access_code") setNeedsCode(true);
     setTone({ step: "failed", message: outcome.message });
   }
 
@@ -269,7 +239,6 @@ export function TryOn({ wigs, firstWigId, ordersOpen }: { wigs: Wig[]; firstWigI
     });
     if (outcome.ok) return setHair({ step: "done", hair: outcome.hair, earlier: outcome.earlier });
     if (outcome.code === "cancelled") return;
-    if (outcome.code === "access_code") setNeedsCode(true);
     setHair({ step: "failed", message: outcome.message });
   }
 
@@ -286,7 +255,7 @@ export function TryOn({ wigs, firstWigId, ordersOpen }: { wigs: Wig[]; firstWigI
     setState({ step: "idle" });
   }
 
-  const busy = state.step === "working" || needsCode === null;
+  const busy = state.step === "working";
   const button =
     "rounded-md bg-zinc-900 px-4 py-3 font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900";
   const link = "self-start text-sm text-zinc-600 underline underline-offset-4 disabled:opacity-50 dark:text-zinc-400";
@@ -299,30 +268,7 @@ export function TryOn({ wigs, firstWigId, ordersOpen }: { wigs: Wig[]; firstWigI
 
   return (
     <div className="flex flex-col gap-6">
-      {needsCode ? (
-        <form
-          className="flex flex-col gap-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!busy) void checkCode(e.currentTarget);
-          }}
-        >
-          <label className="flex flex-col gap-1 text-sm font-medium">
-            Access code (asked once on this device)
-            <input
-              name="accessCode"
-              type="password"
-              autoComplete="off"
-              className="rounded-md border border-zinc-300 px-3 py-2 font-normal dark:border-zinc-700 dark:bg-zinc-900"
-              disabled={busy}
-            />
-          </label>
-          <button type="submit" disabled={busy} className={button}>
-            Continue
-          </button>
-          {status}
-        </form>
-      ) : !agreed ? (
+      {!agreed ? (
         <Consent wigHref={`/w/${firstWigId}`} onAgree={() => setAgreed(true)} />
       ) : selfie ? (
         <section className="flex flex-col gap-3" aria-label="Your preview">

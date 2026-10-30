@@ -28,7 +28,7 @@ export type HairOutcome = { ok: true; hair: HairType; earlier: boolean } | Failu
 export type TryOnOutcome =
   /** `task` is what a colour request needs to point back at this result. */
   | { ok: true; resultUrl: string; seconds: number; task: TaskRef }
-  /** `code` is ours (access_code, timeout, offline, cancelled…) or YouCam's error code. */
+  /** `code` is ours (limit, timeout, offline, cancelled…) or YouCam's error code. */
   | { ok: false; code: string; message: string };
 
 export interface TryOnDeps {

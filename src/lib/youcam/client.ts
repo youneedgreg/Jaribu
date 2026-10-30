@@ -30,6 +30,17 @@ export function isOutOfUnits(error: unknown): boolean {
   return error instanceof InsufficientUnitsError || (error instanceof YouCamError && error.code === "CreditInsufficiency");
 }
 
+// Try-ons are open to anyone, so the app pauses new tasks while this much is left, keeping the
+// balance from being used up before judging ends. YOUCAM_UNIT_RESERVE changes it (redeploy needed), never below 100.
+const DEFAULT_UNIT_RESERVE = 300;
+const MIN_UNIT_RESERVE = 100;
+
+export function unitReserve(value: string | undefined): number {
+  const reserve = Number(value);
+  if (!value || !Number.isFinite(reserve)) return DEFAULT_UNIT_RESERVE;
+  return Math.max(reserve, MIN_UNIT_RESERVE);
+}
+
 export type TaskOutcome<A extends TaskApi> =
   | { status: "success"; taskId: string; results: TaskResults[A] }
   | { status: "error"; taskId: string; error: string | null; message?: string }
