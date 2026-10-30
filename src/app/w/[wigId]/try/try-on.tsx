@@ -7,6 +7,7 @@ import { formatKes, type Wig } from "@/lib/shop/demo";
 import { requestColorway, requestHairType, requestTone, requestTryOn, type TaskRef, type TryOnProgress } from "@/lib/tryon/client";
 import { BeforeAfter } from "./before-after";
 import { BlendCheck, toHairJpegs, type HairState } from "./blend-check";
+import { Consent } from "./consent";
 import { LaceMatch, toToneJpeg, type ToneState } from "./lace-match";
 import { OrderPanel, type ShownPreview } from "./order-panel";
 import { Swatch } from "./swatch";
@@ -75,6 +76,7 @@ export function TryOn({ wigs, firstWigId, ordersOpen }: { wigs: Wig[]; firstWigI
   const [state, setState] = useState<State>({ step: "idle" });
   // null while we ask the server whether this device already entered the code.
   const [needsCode, setNeedsCode] = useState<boolean | null>(null);
+  const [agreed, setAgreed] = useState(false);
   const [mode, setMode] = useState<"camera" | "upload">("camera");
   const [cameraNote, setCameraNote] = useState<string | null>(null);
   const [selfie, setSelfie] = useState<Selfie | null>(null);
@@ -320,6 +322,8 @@ export function TryOn({ wigs, firstWigId, ordersOpen }: { wigs: Wig[]; firstWigI
           </button>
           {status}
         </form>
+      ) : !agreed ? (
+        <Consent wigHref={`/w/${firstWigId}`} onAgree={() => setAgreed(true)} />
       ) : selfie ? (
         <section className="flex flex-col gap-3" aria-label="Your preview">
           <div className="flex items-baseline justify-between gap-4">
