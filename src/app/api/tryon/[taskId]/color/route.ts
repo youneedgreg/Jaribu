@@ -7,7 +7,7 @@ import { currentSession } from "@/lib/session-cookie";
 import { findColorway } from "@/lib/shop/demo";
 import { findWig } from "@/lib/shop/listings";
 import { RecolorError, startRecolor } from "@/lib/tryon/tryon";
-import { InsufficientUnitsError } from "@/lib/youcam/client";
+import { isOutOfUnits } from "@/lib/youcam/client";
 import { youcam } from "@/lib/youcam/server";
 
 // Shows a finished try-on in one of the wig's colours: JSON `{ ticket, wigId, colorwayId }`, where
@@ -43,7 +43,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/tryon/[task
       return failure(error.code === "expired" ? 410 : error.code === "not_found" ? 404 : 422, error.code, error.message);
     }
     logError("tryon/color", error);
-    if (error instanceof InsufficientUnitsError) {
+    if (isOutOfUnits(error)) {
       return failure(503, "paused", "Colours are paused for now. Please try again later.");
     }
     return failure(502, "start_failed", "We couldn't start the colour preview. Please try again in a minute.");

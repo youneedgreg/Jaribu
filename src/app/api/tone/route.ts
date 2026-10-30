@@ -4,7 +4,7 @@ import { failure, json, logError } from "@/lib/http";
 import { results } from "@/lib/results/server";
 import { currentSession } from "@/lib/session-cookie";
 import { PHOTO_MAX_BYTES } from "@/lib/tryon/tryon";
-import { InsufficientUnitsError } from "@/lib/youcam/client";
+import { isOutOfUnits } from "@/lib/youcam/client";
 import { youcam } from "@/lib/youcam/server";
 
 // The skin-tone reading for the lace match, one per session (20 units). POST a multipart
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof TonePhotoError) return failure(400, "bad_photo", error.message);
     logError("tone/start", error);
-    if (error instanceof InsufficientUnitsError) {
+    if (isOutOfUnits(error)) {
       return failure(503, "paused", "The lace match is paused for now. Please try again later.");
     }
     return failure(502, "start_failed", "We couldn't start the lace match. Please try again in a minute.");

@@ -25,6 +25,11 @@ export class InsufficientUnitsError extends Error {
   }
 }
 
+/** True when units ran out: our own floor, or YouCam saying so (documented as a 400). */
+export function isOutOfUnits(error: unknown): boolean {
+  return error instanceof InsufficientUnitsError || (error instanceof YouCamError && error.code === "CreditInsufficiency");
+}
+
 export type TaskOutcome<A extends TaskApi> =
   | { status: "success"; taskId: string; results: TaskResults[A] }
   | { status: "error"; taskId: string; error: string | null; message?: string }
