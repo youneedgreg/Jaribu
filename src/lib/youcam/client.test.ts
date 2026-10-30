@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
 import * as fx from "./__fixtures__/responses";
-import { createYouCamClient, InsufficientUnitsError, YouCamError } from "./client";
+import { createYouCamClient, InsufficientUnitsError, isOutOfUnits, YouCamError } from "./client";
+
+describe("isOutOfUnits", () => {
+  it("is true for our own floor and for YouCam's CreditInsufficiency", () => {
+    expect(isOutOfUnits(new InsufficientUnitsError(100, 2, 100))).toBe(true);
+    expect(isOutOfUnits(new YouCamError("failed", 400, "CreditInsufficiency"))).toBe(true);
+  });
+
+  it("is false for anything else", () => {
+    expect(isOutOfUnits(new YouCamError("failed", 400, "InvalidParameters"))).toBe(false);
+    expect(isOutOfUnits(new Error("failed"))).toBe(false);
+  });
+});
 
 type Call = { url: string; method: string; headers: Record<string, string>; body?: unknown };
 type Reply = { status: number; body?: unknown };

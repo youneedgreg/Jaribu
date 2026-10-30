@@ -4,6 +4,7 @@ import type { ResultStore } from "../results/store";
 import { PHOTO_MAX_BYTES } from "../tryon/tryon";
 import { TASK_APIS } from "../youcam/apis";
 import type { YouCamClient } from "../youcam/client";
+import { isServiceProblem, PHOTOS_TOO_SMALL, SERVICE_PROBLEM } from "../youcam/messages";
 
 // The skin-tone reading behind the lace match: Facial Color Tones on the cropped close-up.
 // It costs 20 units, so each session gets one task: the record in Blob says whether it has
@@ -42,9 +43,12 @@ export type ToneStatus =
 /** `earlier`: the session already had a task, so this answer is about an earlier close-up, not the one just sent. */
 export type ToneStart = ToneStatus & { earlier?: true };
 
-// Placeholder wording until step G; these codes say exactly what to change.
+// These codes say exactly what to change.
 function toneMessage(code: string | null): string {
+  if (isServiceProblem(code)) return SERVICE_PROBLEM;
   switch (code) {
+    case "error_below_min_image_size":
+      return PHOTOS_TOO_SMALL;
     case "error_face_position_too_small":
       return "Your face was too small in the close-up. Hold the phone a little closer and take the photos again.";
     case "error_face_position_out_of_boundary":

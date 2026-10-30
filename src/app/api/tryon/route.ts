@@ -6,7 +6,7 @@ import { currentOrNewSession } from "@/lib/session-cookie";
 import { findWig } from "@/lib/shop/listings";
 import { readWigPhoto } from "@/lib/shop/wig-photo";
 import { checkPhoto, PHOTO_MAX_BYTES, PhotoError, startTryOn } from "@/lib/tryon/tryon";
-import { InsufficientUnitsError } from "@/lib/youcam/client";
+import { isOutOfUnits } from "@/lib/youcam/client";
 import { youcam } from "@/lib/youcam/server";
 
 // Starts a try-on: multipart form with `selfie` (JPG, long side ≤ 1024 px), `wigId` (a demo
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     return json({ taskId, ticket: taskTicket("hairstyle", session.id, taskId, process.env.SESSION_SECRET) });
   } catch (error) {
     logError("tryon/start", error);
-    if (error instanceof InsufficientUnitsError) {
+    if (isOutOfUnits(error)) {
       return failure(503, "paused", "Try-on is paused for now. Please try again later.");
     }
     return failure(502, "start_failed", "We couldn't start the preview. Please try again in a minute.");

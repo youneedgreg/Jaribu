@@ -4,7 +4,7 @@ import { failure, json, logError } from "@/lib/http";
 import { results } from "@/lib/results/server";
 import { currentSession } from "@/lib/session-cookie";
 import { PHOTO_MAX_BYTES } from "@/lib/tryon/tryon";
-import { InsufficientUnitsError } from "@/lib/youcam/client";
+import { isOutOfUnits } from "@/lib/youcam/client";
 import { youcam } from "@/lib/youcam/server";
 
 // The hair-type reading for the blend check, one per session (2 units). POST a multipart
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof HairPhotoError) return failure(400, "bad_photo", error.message);
     logError("hairtype/start", error);
-    if (error instanceof InsufficientUnitsError) {
+    if (isOutOfUnits(error)) {
       return failure(503, "paused", "The blend check is paused for now. Please try again later.");
     }
     return failure(502, "start_failed", "We couldn't start the blend check. Please try again in a minute.");

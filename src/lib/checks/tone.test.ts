@@ -140,6 +140,8 @@ describe("pollTone", () => {
     ["error_face_position_too_small", /closer/],
     ["error_face_position_out_of_boundary", /further away/],
     ["error_face_angle_leftward", /straight/],
+    ["error_below_min_image_size", /too small to read/],
+    ["unknown_internal_error", /not your photo/],
     [null, /daylight/],
   ])("turns %s into something the shopper can do", async (code, message) => {
     const { client, records } = fakes({ outcomes: [{ status: "error", taskId: "tone-task", error: code }] });
