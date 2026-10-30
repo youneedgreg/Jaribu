@@ -23,9 +23,9 @@ export default async function OrderCardPage({ params }: PageProps<"/o/[orderId]"
   const { wig, shop } = found;
   const check = checkOrderChoice(wig, order);
 
-  const opened = await results().open(order.sessionId, order.resultTaskId);
-  if (opened.status === "ok") await opened.stream.cancel();
-  const hasPicture = opened.status === "ok";
+  const opened = order.sessionId && order.resultTaskId ? await results().open(order.sessionId, order.resultTaskId) : null;
+  if (opened?.status === "ok") await opened.stream.cancel();
+  const hasPicture = opened?.status === "ok";
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-5 px-4 py-8">

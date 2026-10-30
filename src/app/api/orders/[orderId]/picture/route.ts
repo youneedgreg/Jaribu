@@ -12,6 +12,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/api/orde
   try {
     const order = await orderById(orderId);
     if (!order) return new Response("Not found", { status: 404, headers: NO_STORE });
+    if (!order.sessionId || !order.resultTaskId) return new Response("Gone", { status: 410, headers: NO_STORE });
     const opened = await results().open(order.sessionId, order.resultTaskId);
     if (opened.status !== "ok") return new Response("Gone", { status: 410, headers: NO_STORE });
     const headers: Record<string, string> = { ...NO_STORE, "content-type": opened.contentType, "x-content-type-options": "nosniff" };
