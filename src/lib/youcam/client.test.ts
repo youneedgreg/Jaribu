@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as fx from "./__fixtures__/responses";
-import { createYouCamClient, InsufficientUnitsError, isOutOfUnits, YouCamError } from "./client";
+import { createYouCamClient, InsufficientUnitsError, isOutOfUnits, unitReserve, YouCamError } from "./client";
 
 describe("isOutOfUnits", () => {
   it("is true for our own floor and for YouCam's CreditInsufficiency", () => {
@@ -176,5 +176,19 @@ describe("errors and rate limits", () => {
     expect(err).toBeInstanceOf(YouCamError);
     expect(err).toMatchObject({ status: 401, code: "InvalidAccessToken" });
     expect(String((err as Error).message)).not.toContain("test-key");
+  });
+});
+
+describe("unitReserve", () => {
+  it("keeps 300 units unless told otherwise", () => {
+    expect(unitReserve(undefined)).toBe(300);
+    expect(unitReserve("")).toBe(300);
+    expect(unitReserve("lots")).toBe(300);
+    expect(unitReserve("150")).toBe(150);
+  });
+
+  it("never goes below 100", () => {
+    expect(unitReserve("0")).toBe(100);
+    expect(unitReserve("-5")).toBe(100);
   });
 });
