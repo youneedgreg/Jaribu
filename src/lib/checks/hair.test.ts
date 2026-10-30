@@ -143,6 +143,8 @@ describe("pollHairType", () => {
     ["error_insufficient_lighting", /daylight/],
     ["error_face_position_too_small", /closer/],
     ["error_face_angle_invalid", /straight ahead/],
+    ["error_below_min_image_size", /too small to read/],
+    ["error_inference", /not your photo/],
     [null, /hair loose/],
   ])("turns %s into something the shopper can do", async (code, message) => {
     const { client, records } = fakes({ outcomes: [{ status: "error", taskId: "hair-task", error: code }] });
