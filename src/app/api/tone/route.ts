@@ -1,4 +1,3 @@
-import { hasAccessPass } from "@/lib/access-cookie";
 import { pollTone, startTone, TonePhotoError } from "@/lib/checks/tone";
 import { failure, json, logError } from "@/lib/http";
 import { results } from "@/lib/results/server";
@@ -15,7 +14,6 @@ import { youcam } from "@/lib/youcam/server";
 export async function POST(request: Request) {
   const session = await currentSession();
   if (!session) return failure(401, "session_ended", "This preview has ended. Please start again.");
-  if (!(await hasAccessPass())) return failure(401, "access_code", "Enter the access code again to keep trying.");
   if (Number(request.headers.get("content-length") ?? 0) > PHOTO_MAX_BYTES + 64 * 1024) {
     return failure(413, "too_large", "The close-up photo is too large.");
   }

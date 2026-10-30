@@ -1,5 +1,3 @@
-import { accessCodeMatches } from "@/lib/access-code";
-import { grantAccessPass, hasAccessPass } from "@/lib/access-cookie";
 import { failure, json, logError } from "@/lib/http";
 import { limitMessage, reachedLimit, taskTicket } from "@/lib/session";
 import { currentOrNewSession, recordUsage, usageOf } from "@/lib/session-cookie";
@@ -9,9 +7,8 @@ import { checkPhoto, PHOTO_MAX_BYTES, PhotoError, startTryOn } from "@/lib/tryon
 import { isOutOfUnits } from "@/lib/youcam/client";
 import { youcam } from "@/lib/youcam/server";
 
-// Starts a try-on: multipart form with `selfie` (JPG, long side ≤ 1024 px), `wigId` (a demo
-// or seller wig) and, unless this device has a pass, `accessCode`. Returns the task id and a ticket
-// for polling GET /api/tryon/<taskId>.
+// Starts a try-on: multipart form with `selfie` (JPG, long side ≤ 1024 px) and `wigId` (a demo
+// or seller wig). Returns the task id and a ticket for polling GET /api/tryon/<taskId>.
 
 export async function POST(request: Request) {
   // One photo plus form overhead; anything bigger isn't ours.
@@ -23,12 +20,6 @@ export async function POST(request: Request) {
     form = await request.formData();
   } catch {
     return failure(400, "bad_form", "Send the photo as a form.");
-  }
-
-  const code = form.get("accessCode");
-  const codeMatches = accessCodeMatches(typeof code === "string" ? code : null, process.env.TRYON_ACCESS_CODE);
-  if (!codeMatches && !(await hasAccessPass())) {
-    return failure(401, "access_code", "That access code isn't right.");
   }
 
   const wigId = form.get("wigId");
@@ -52,7 +43,6 @@ export async function POST(request: Request) {
   }
 
   try {
-    if (codeMatches) await grantAccessPass();
     const session = await currentOrNewSession();
     const usage = await usageOf(session);
     if (reachedLimit(usage, "hairstyle")) return failure(429, "limit", limitMessage("hairstyle"));

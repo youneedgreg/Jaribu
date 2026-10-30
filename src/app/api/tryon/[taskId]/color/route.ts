@@ -1,4 +1,3 @@
-import { hasAccessPass } from "@/lib/access-cookie";
 import { failure, json, logError } from "@/lib/http";
 import { isSafeId } from "@/lib/results/store";
 import { results } from "@/lib/results/server";
@@ -19,7 +18,6 @@ export async function POST(request: Request, ctx: RouteContext<"/api/tryon/[task
   const { taskId } = await ctx.params;
   const session = await currentSession();
   if (!session) return failure(401, "session_ended", "This preview has ended. Please start again.");
-  if (!(await hasAccessPass())) return failure(401, "access_code", "Enter the access code again to keep trying.");
 
   const body = (await request.json().catch(() => null)) as { ticket?: unknown; wigId?: unknown; colorwayId?: unknown } | null;
   const ticket = typeof body?.ticket === "string" ? body.ticket : null;

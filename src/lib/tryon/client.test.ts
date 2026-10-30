@@ -52,11 +52,11 @@ describe("requestTryOn", () => {
   });
 
   it("passes on the server's code and message when the start is refused", async () => {
-    const { deps } = fakeServer([[401, { error: { code: "access_code", message: "That access code isn't right." } }]]);
+    const { deps } = fakeServer([[429, { error: { code: "limit", message: "Please come back tomorrow to try more." } }]]);
     expect(await requestTryOn(selfie, "body-wave", deps)).toEqual({
       ok: false,
-      code: "access_code",
-      message: "That access code isn't right.",
+      code: "limit",
+      message: "Please come back tomorrow to try more.",
     });
   });
 
