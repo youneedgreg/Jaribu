@@ -3,6 +3,7 @@ import { RESULT_MAX_BYTES, type ResultStore } from "../results/store";
 import type { Colorway } from "../shop/catalog";
 import { TASK_APIS, type TaskApi } from "../youcam/apis";
 import type { YouCamClient } from "../youcam/client";
+import { isServiceProblem, SERVICE_PROBLEM } from "../youcam/messages";
 
 // The try-on flow without Next.js: check the two photos, start a Hair Style task, and poll it
 // once per request (the browser polls us every 3 s, so no function waits on YouCam). A finished
@@ -108,11 +109,46 @@ export type TryOnStatus =
   | { status: "success" }
   | { status: "error"; code: string | null; message: string };
 
-// Placeholder wording until step G writes a message for every known code.
-const FAILED: Record<ResultApi, string> = {
-  hairstyle: "This photo didn't work for a preview. Try a front-facing photo in daylight, with your shoulders and some hair showing.",
-  haircolor: "This colour didn't work on the preview. Try another colour, or try again in a minute.",
-};
+const TURNED_AWAY = "Your face was turned too far. Look straight at the camera and take a new photo.";
+const CANT_MAKE_OUT = "We couldn't make out your face and shoulders. Face the camera in good light, with nothing covering your face.";
+const CANT_USE = "This photo can't be used for a preview. Please try a different one.";
+const CANT_READ = "We couldn't read this photo. Take a new one or choose another.";
+
+// What each photo problem means for the shopper's try-on photo.
+const PHOTO_PROBLEMS = new Map<string, string>([
+  ["error_hair_too_short", "This preview works best with some hair showing. Try a photo without a wig cap."],
+  ["error_bald_image", "We couldn't see enough hair for this preview. Try a photo with your hair showing and no cap or headwrap."],
+  ["error_no_shoulder", "Your shoulders need to show. Hold the phone further away and take a new photo."],
+  ["error_large_face_angle", TURNED_AWAY],
+  ["error_face_pose", TURNED_AWAY],
+  ["error_no_face", "We couldn't find a face in this photo. Face the camera in good light and take a new photo."],
+  ["error_insufficient_landmarks", CANT_MAKE_OUT],
+  ["error_pose", CANT_MAKE_OUT],
+  ["error_face_parsing", CANT_MAKE_OUT],
+  ["error_multiple_people", "We found more than one person. Take a new photo with only you in it."],
+  ["error_unsupport_ratio", "This photo's shape won't work. Use the guided camera or a normal upright photo."],
+  ["error_nsfw_content_detected", CANT_USE],
+  ["exceed_nsfw_retry_limits", CANT_USE],
+  ["error_decode_image", CANT_READ],
+  ["error_download_image", CANT_READ],
+  ["exceed_max_filesize", CANT_READ],
+]);
+
+function resultMessage(api: ResultApi, code: string | null): string {
+  if (isServiceProblem(code)) return SERVICE_PROBLEM;
+  if (api === "hairstyle") {
+    return (
+      (code && PHOTO_PROBLEMS.get(code)) ||
+      "This photo didn't work for a preview. Try a front-facing photo in daylight, with your shoulders and some hair showing."
+    );
+  }
+  // A colour starts from the stored preview, so a size problem needs a new try-on, not a new colour.
+  if (code === "error_below_min_image_size" || code === "error_exceed_max_image_size") {
+    return "We can't make colours from this preview. Take a new photo and try again.";
+  }
+  if (code && PHOTO_PROBLEMS.has(code)) return "This colour didn't work on this preview. Try another colour.";
+  return "This colour didn't work on the preview. Try another colour, or try again in a minute.";
+}
 
 /** One look at the task. On success the result is copied to Blob before we say so. */
 export async function pollTryOn(
@@ -124,7 +160,7 @@ export async function pollTryOn(
 ): Promise<TryOnStatus> {
   const outcome = await client.getTask(api, taskId);
   if (outcome.status === "running") return { status: "running" };
-  if (outcome.status === "error") return { status: "error", code: outcome.error, message: FAILED[api] };
+  if (outcome.status === "error") return { status: "error", code: outcome.error, message: resultMessage(api, outcome.error) };
   if (outcome.status === "success") {
     await store.save(sessionId, taskId, outcome.results.url);
     return { status: "success" };

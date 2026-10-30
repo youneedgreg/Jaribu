@@ -102,8 +102,49 @@ describe("pollTryOn", () => {
     const { store, saved } = fakeStore();
     const result = await pollTryOn(client, store, "session-1", "task-123");
     expect(result).toMatchObject({ status: "error", code: "error_hair_too_short" });
-    expect(result.status === "error" && result.message).toMatch(/front-facing photo/);
+    expect(result.status === "error" && result.message).toMatch(/wig cap/);
     expect(saved).toEqual([]);
+  });
+
+  it.each([
+    ["error_hair_too_short", /wig cap/],
+    ["error_bald_image", /no cap or headwrap/],
+    ["error_no_shoulder", /shoulders need to show/],
+    ["error_large_face_angle", /straight at the camera/],
+    ["error_face_pose", /straight at the camera/],
+    ["error_no_face", /find a face/],
+    ["error_insufficient_landmarks", /make out your face/],
+    ["error_pose", /make out your face/],
+    ["error_face_parsing", /make out your face/],
+    ["error_multiple_people", /only you/],
+    ["error_unsupport_ratio", /shape/],
+    ["error_nsfw_content_detected", /different one/],
+    ["exceed_nsfw_retry_limits", /different one/],
+    ["error_decode_image", /read this photo/],
+    ["error_download_image", /read this photo/],
+    ["exceed_max_filesize", /read this photo/],
+    ["error_inference", /not your photo/],
+    ["error_upload", /not your photo/],
+    ["unknown_internal_error", /not your photo/],
+    ["error_something_new", /front-facing photo/],
+    [null, /front-facing photo/],
+  ])("tells the shopper what to do about %s on a try-on", async (code, message) => {
+    const { client } = fakeClient({ outcomes: [{ status: "error", taskId: "task-123", error: code }] });
+    const { store } = fakeStore();
+    expect(await pollTryOn(client, store, "session-1", "task-123")).toMatchObject({ status: "error", code, message: expect.stringMatching(message) });
+  });
+
+  it.each([
+    ["error_below_min_image_size", /new photo/],
+    ["error_exceed_max_image_size", /new photo/],
+    ["error_hair_too_short", /didn't work on this preview/],
+    ["error_inference", /not your photo/],
+    ["error_something_new", /try again in a minute/],
+    [null, /try again in a minute/],
+  ])("tells the shopper what to do about %s on a colour", async (code, message) => {
+    const { client } = fakeClient({ outcomes: [{ status: "error", taskId: "task-123", error: code }] });
+    const { store } = fakeStore();
+    expect(await pollTryOn(client, store, "session-1", "task-123", "haircolor")).toMatchObject({ status: "error", code, message: expect.stringMatching(message) });
   });
 });
 
@@ -173,10 +214,10 @@ describe("pollTryOn for a colour", () => {
     expect(saved).toEqual([["session-1", "color-task", url]]);
   });
 
-  it("says the colour failed, not the photo", async () => {
+  it("says the service failed, not the photo", async () => {
     const { client } = fakeClient({ outcomes: [{ status: "error", taskId: "t", error: "error_inference" }] });
     const result = await pollTryOn(client, fakeStore().store, "s", "t", "haircolor");
     expect(result).toMatchObject({ status: "error", code: "error_inference" });
-    expect(result.status === "error" && result.message).toMatch(/colour/);
+    expect(result.status === "error" && result.message).toMatch(/not your photo/);
   });
 });
