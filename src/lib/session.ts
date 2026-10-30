@@ -75,3 +75,38 @@ export function taskTicketMatches(
   const given = Buffer.from(ticket ?? "");
   return given.length === expected.length && timingSafeEqual(given, expected);
 }
+
+// A limit on what one session can start, so one visit can't use up the units. The count lives in
+// a signed cookie, so it can't be edited, but clearing cookies starts over: the unit reserve in
+// youcam/server.ts is what actually protects the balance. Tone and hair type are already once per session.
+
+export const USAGE_COOKIE = "jaribu_usage";
+export const SESSION_LIMITS = { hairstyle: 10, haircolor: 12 } as const;
+
+export type LimitedApi = keyof typeof SESSION_LIMITS;
+export type Usage = Record<LimitedApi, number>;
+
+export function encodeUsage(sessionId: string, usage: Usage, secret: string | undefined): string {
+  const payload = `${usage.hairstyle}.${usage.haircolor}`;
+  return `${payload}.${sign(`usage.${sessionId}.${payload}`, checkSecret(secret))}`;
+}
+
+/** The session's counts, or zero if the cookie is missing, forged or from another session. */
+export function decodeUsage(value: string | undefined, sessionId: string, secret: string | undefined): Usage {
+  const none = { hairstyle: 0, haircolor: 0 };
+  const match = value?.match(/^(\d{1,4})\.(\d{1,4})\.([A-Za-z0-9_-]{43})$/);
+  if (!match) return none;
+  const [, hairstyle, haircolor, signature] = match;
+  const expected = Buffer.from(sign(`usage.${sessionId}.${hairstyle}.${haircolor}`, checkSecret(secret)));
+  if (!timingSafeEqual(Buffer.from(signature), expected)) return none;
+  return { hairstyle: Number(hairstyle), haircolor: Number(haircolor) };
+}
+
+export const countUsage = (usage: Usage, api: LimitedApi): Usage => ({ ...usage, [api]: usage[api] + 1 });
+export const reachedLimit = (usage: Usage, api: LimitedApi) => usage[api] >= SESSION_LIMITS[api];
+
+export function limitMessage(api: LimitedApi): string {
+  return api === "hairstyle"
+    ? `You've tried ${SESSION_LIMITS.hairstyle} wigs on this visit, which is the most we can show. Please come back tomorrow to try more.`
+    : `You've tried ${SESSION_LIMITS.haircolor} colours on this visit, which is the most we can show. Please come back tomorrow to try more.`;
+}

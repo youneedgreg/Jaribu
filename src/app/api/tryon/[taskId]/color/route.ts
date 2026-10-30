@@ -3,7 +3,8 @@ import { failure, json, logError } from "@/lib/http";
 import { isSafeId } from "@/lib/results/store";
 import { results } from "@/lib/results/server";
 import { taskTicket, taskTicketMatches } from "@/lib/session";
-import { currentSession } from "@/lib/session-cookie";
+import { limitMessage, reachedLimit } from "@/lib/session";
+import { currentSession, recordUsage, usageOf } from "@/lib/session-cookie";
 import { findColorway } from "@/lib/shop/demo";
 import { findWig } from "@/lib/shop/listings";
 import { RecolorError, startRecolor } from "@/lib/tryon/tryon";
@@ -35,8 +36,12 @@ export async function POST(request: Request, ctx: RouteContext<"/api/tryon/[task
   const colorway = wig && typeof body?.colorwayId === "string" ? findColorway(wig, body.colorwayId) : undefined;
   if (!colorway) return failure(404, "no_colorway", "This wig doesn't come in that colour.");
 
+  const usage = await usageOf(session);
+  if (reachedLimit(usage, "haircolor")) return failure(429, "limit", limitMessage("haircolor"));
+
   try {
     const colorTaskId = await startRecolor(youcam(), results(), session.id, taskId, colorway);
+    await recordUsage(session, usage, "haircolor");
     return json({ taskId: colorTaskId, ticket: taskTicket("haircolor", session.id, colorTaskId, process.env.SESSION_SECRET) });
   } catch (error) {
     if (error instanceof RecolorError) {

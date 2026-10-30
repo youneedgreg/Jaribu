@@ -1,8 +1,8 @@
 import { accessCodeMatches } from "@/lib/access-code";
 import { grantAccessPass, hasAccessPass } from "@/lib/access-cookie";
 import { failure, json, logError } from "@/lib/http";
-import { taskTicket } from "@/lib/session";
-import { currentOrNewSession } from "@/lib/session-cookie";
+import { limitMessage, reachedLimit, taskTicket } from "@/lib/session";
+import { currentOrNewSession, recordUsage, usageOf } from "@/lib/session-cookie";
 import { findWig } from "@/lib/shop/listings";
 import { readWigPhoto } from "@/lib/shop/wig-photo";
 import { checkPhoto, PHOTO_MAX_BYTES, PhotoError, startTryOn } from "@/lib/tryon/tryon";
@@ -54,7 +54,10 @@ export async function POST(request: Request) {
   try {
     if (codeMatches) await grantAccessPass();
     const session = await currentOrNewSession();
+    const usage = await usageOf(session);
+    if (reachedLimit(usage, "hairstyle")) return failure(429, "limit", limitMessage("hairstyle"));
     const taskId = await startTryOn(youcam(), selfie, await readWigPhoto(wig));
+    await recordUsage(session, usage, "hairstyle");
     return json({ taskId, ticket: taskTicket("hairstyle", session.id, taskId, process.env.SESSION_SECRET) });
   } catch (error) {
     logError("tryon/start", error);
