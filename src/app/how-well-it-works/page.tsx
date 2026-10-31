@@ -15,9 +15,11 @@ const NAMES: Record<EvalApi, { name: string; youcam: string }> = {
 };
 
 const FLAWS = [
+  ["A wig photo can replace the shopper's face.", "In our own phone test, a close-up seller photo with a tilted head and a hand near the face put the model's face on the shopper. The same selfie kept its own face with a front-facing mannequin photo. The add-a-wig form now asks for calm, front-facing photos, but nothing stops a seller uploading a bad one."],
+  ["Skin can come out different.", "In that mannequin test, the face came out darker than in the original photo and the beard was blurred. That's one result, not a measured rate."],
   ["Colours come out too bright.", "Burgundy (99J) looks vivid magenta, auburn (#30) bright orange and platinum (613) olive gold. Ask the seller for a daylight photo of the colour."],
   ["Hair type misreads braids.", "A photo with box braids read as 2A to 2B, wavy, on both 26 and 30 October. The blend check warns about this."],
-  ["The wig photo carries over.", "The Body wave photo has wind-blown strands, and they appeared on all three test faces."],
+  ["The wig photo carries over.", "The Body wave photo has wind-blown strands, and they appeared on all three test faces. A calm mannequin photo also grew thin stray strands above the head in our own phone test."],
   ["Big styles can get cut off.", "The Curly afro was cut flat at the top on one face, with little space above the head."],
   ["Some previews look drawn.", "In our own phone tests, some results had smoothed skin and painted-looking hair, more than on these test photos."],
 ];
