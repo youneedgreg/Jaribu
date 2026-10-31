@@ -85,15 +85,17 @@ export function WigForm() {
             disabled={pending}
             onChange={(e) => void choosePhoto(e.currentTarget.files?.[0])}
           />
-          {photoProblem || errors.photo ? (
-            <span className={fieldError}>{photoProblem ?? errors.photo}</span>
-          ) : (
-            <span className={hint}>
-              The wig from the front, on a head or a mannequin, with all of it in the frame and calm styling (no
-              wind-blown strands). Shoppers&apos; previews are made from this photo.
-            </span>
-          )}
+          {(photoProblem || errors.photo) && <span className={fieldError}>{photoProblem ?? errors.photo}</span>}
         </label>
+        <div className={`flex flex-col gap-1 text-sm ${hint}`}>
+          <p>Shoppers&apos; previews are made from this photo. A poor one can put the model&apos;s face on the shopper, so use:</p>
+          <ul className="list-disc pl-5">
+            <li>The wig on a person or a mannequin with a face, looking at the camera with the head straight</li>
+            <li>One person only, with no hands near the face</li>
+            <li>All the hair in the frame, with calm styling (no wind-blown strands)</li>
+          </ul>
+          <p>Then try it on yourself before you share the link.</p>
+        </div>
         {photo && (
           // A local preview of the shrunk photo; next/image can't show blob: URLs.
           // eslint-disable-next-line @next/next/no-img-element
