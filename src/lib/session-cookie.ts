@@ -10,7 +10,7 @@ import {
   SESSION_COOKIE,
   SESSION_COOKIE_OPTIONS,
   USAGE_COOKIE,
-  type LimitedApi,
+  type LimitedAction,
   type Session,
   type Usage,
 } from "./session";
@@ -30,13 +30,13 @@ export async function currentOrNewSession(): Promise<Session> {
   return session;
 }
 
-/** How many tasks this session has started. */
+/** How many tasks this session has started and orders it has saved. */
 export async function usageOf(session: Session): Promise<Usage> {
   return decodeUsage((await cookies()).get(USAGE_COOKIE)?.value, session.id, process.env.SESSION_SECRET);
 }
 
-/** Counts one more started task. Route handlers only. */
-export async function recordUsage(session: Session, usage: Usage, api: LimitedApi): Promise<void> {
-  const value = encodeUsage(session.id, countUsage(usage, api), process.env.SESSION_SECRET);
+/** Counts one more started task or saved order. Route handlers only. */
+export async function recordUsage(session: Session, usage: Usage, action: LimitedAction): Promise<void> {
+  const value = encodeUsage(session.id, countUsage(usage, action), process.env.SESSION_SECRET);
   (await cookies()).set(USAGE_COOKIE, value, SESSION_COOKIE_OPTIONS);
 }
