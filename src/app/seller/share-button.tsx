@@ -27,10 +27,10 @@ export function ShareButton({ url, title, label = "Share" }: { url: string; titl
 
   return (
     <span className="flex flex-wrap items-center gap-2">
-      <button type="button" onClick={() => void share()} className="text-sm font-medium underline underline-offset-4">
+      <button type="button" onClick={() => void share()} className="inline-flex min-h-10 items-center text-sm font-medium underline underline-offset-4">
         {label}
       </button>
-      <span role="status" className="text-sm break-all text-zinc-600 dark:text-zinc-400">
+      <span role="status" className="text-sm break-all text-muted">
         {note}
       </span>
     </span>

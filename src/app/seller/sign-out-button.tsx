@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { textLink } from "@/components/styles";
 import { authClient } from "@/lib/auth-client";
 
 export function SignOutButton() {
@@ -12,7 +13,7 @@ export function SignOutButton() {
     <button
       type="button"
       disabled={busy}
-      className="self-start text-sm text-zinc-600 underline underline-offset-4 disabled:opacity-50 dark:text-zinc-400"
+      className={textLink}
       onClick={async () => {
         setBusy(true);
         await authClient.signOut();

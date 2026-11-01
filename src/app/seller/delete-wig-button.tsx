@@ -12,7 +12,7 @@ export function DeleteWigButton({ wigId, name }: { wigId: string; name: string }
       }}
     >
       <input type="hidden" name="wigId" value={wigId} />
-      <button type="submit" className="text-sm text-red-700 underline underline-offset-4 dark:text-red-400">
+      <button type="submit" className="inline-flex min-h-10 items-center text-sm text-danger underline underline-offset-4">
         Delete
       </button>
     </form>

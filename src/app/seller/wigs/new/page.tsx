@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { SiteHeader } from "@/components/site-header";
+import { pageTitle } from "@/components/styles";
 import { currentSeller } from "@/lib/seller/current-seller";
 import { shopForOwner } from "@/lib/seller/shop";
 import { WigForm } from "./wig-form";
@@ -17,14 +19,19 @@ async function NewWig() {
 
 export default function NewWigPage() {
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-8">
-      <Link href="/seller" className="text-sm text-zinc-600 underline underline-offset-4 dark:text-zinc-400">
-        Back to your shop
-      </Link>
-      <h1 className="text-2xl font-semibold tracking-tight">Add a wig</h1>
-      <Suspense fallback={<p className="text-zinc-600 dark:text-zinc-400">Loading…</p>}>
-        <NewWig />
-      </Suspense>
-    </main>
+    <>
+      <SiteHeader />
+      <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-5 px-4 pt-2 pb-12">
+        <div className="flex flex-col gap-1">
+          <Link href="/seller" className="self-start text-sm font-medium text-accent underline-offset-4 hover:underline">
+            Back to your shop
+          </Link>
+          <h1 className={pageTitle}>Add a wig</h1>
+        </div>
+        <Suspense fallback={<p className="text-muted">Loading…</p>}>
+          <NewWig />
+        </Suspense>
+      </main>
+    </>
   );
 }

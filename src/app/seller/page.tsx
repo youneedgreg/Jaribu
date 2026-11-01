@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { SiteHeader } from "@/components/site-header";
+import { card, pageTitle, primaryButton, sectionTitle } from "@/components/styles";
 import { currentSeller } from "@/lib/seller/current-seller";
 import { shopForOwner } from "@/lib/seller/shop";
 import { formatWhatsapp } from "@/lib/seller/shop-fields";
@@ -17,8 +19,7 @@ import { ShareButton } from "./share-button";
 import { ShopForm } from "./shop-form";
 import { SignOutButton } from "./sign-out-button";
 
-const addButton =
-  "self-start rounded-md bg-zinc-900 px-4 py-3 font-medium text-white dark:bg-zinc-100 dark:text-zinc-900";
+const label = "text-sm text-muted";
 
 export const metadata: Metadata = { title: "Your shop · Jaribu", robots: { index: false } };
 
@@ -34,11 +35,13 @@ async function SellerHome() {
   if (!shop) {
     return (
       <>
-        <p className="text-zinc-600 dark:text-zinc-400">
+        <p className="text-muted">
           Set up your shop first. Shoppers see its name, and their orders come to your WhatsApp.
         </p>
-        <ShopForm current={null} linkPrefix={linkPrefix} />
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">Signed in as {session.user.email}.</p>
+        <div className={card}>
+          <ShopForm current={null} linkPrefix={linkPrefix} />
+        </div>
+        <p className="text-sm text-muted">Signed in as {session.user.email}.</p>
         <SignOutButton />
       </>
     );
@@ -48,17 +51,17 @@ async function SellerHome() {
 
   return (
     <>
-      <dl className="flex flex-col gap-3">
+      <dl className={`${card} flex flex-col gap-3`}>
         <div>
-          <dt className="text-sm text-zinc-600 dark:text-zinc-400">Shop name</dt>
+          <dt className={label}>Shop name</dt>
           <dd className="font-medium">{shop.name}</dd>
         </div>
         <div>
-          <dt className="text-sm text-zinc-600 dark:text-zinc-400">Orders go to WhatsApp</dt>
+          <dt className={label}>Orders go to WhatsApp</dt>
           <dd className="font-medium">{formatWhatsapp(shop.whatsapp)}</dd>
         </div>
         <div>
-          <dt className="text-sm text-zinc-600 dark:text-zinc-400">Shop link</dt>
+          <dt className={label}>Shop link</dt>
           <dd className="flex flex-col gap-1">
             <a href={`/s/${shop.slug}`} className="font-medium break-all underline underline-offset-4">
               {linkPrefix}
@@ -69,31 +72,31 @@ async function SellerHome() {
         </div>
       </dl>
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">Your wigs</h2>
+        <h2 className={sectionTitle}>Your wigs</h2>
         {wigs.length === 0 ? (
-          <p className="text-zinc-600 dark:text-zinc-400">No wigs yet. Add your first one so shoppers can try it on.</p>
+          <p className="rounded-2xl bg-tint p-4">No wigs yet. Add your first one so shoppers can try it on.</p>
         ) : (
           <ul className="flex flex-col gap-3">
             {wigs.map((wig) => (
-              <li key={wig.id} className="flex gap-3">
+              <li key={wig.id} className={`${card} flex gap-4`}>
                 <Image
                   src={`/api/wigs/${wig.id}/photo`}
                   alt={`${wig.name} wig`}
                   width={wig.photoWidth}
                   height={wig.photoHeight}
                   unoptimized
-                  className="aspect-[3/4] w-20 rounded-md object-cover"
+                  className="aspect-[3/4] w-20 shrink-0 self-start rounded-xl object-cover"
                 />
-                <div className="flex flex-col gap-1">
+                <div className="flex min-w-0 flex-col gap-1">
                   <span className="font-medium">{wig.name}</span>
-                  <span className="text-sm text-zinc-600 dark:text-zinc-400">
+                  <span className="text-sm text-muted">
                     {formatKes(wig.priceKes)} · {wig.lengthIn} in · {byId(TEXTURES, wig.texture)?.name}
                   </span>
-                  <span className="text-sm text-zinc-600 dark:text-zinc-400">
+                  <span className="text-sm">
                     {statsLine(stats.get(wig.id) ?? { tryons: 0, orders: 0 })}
                   </span>
-                  <span className="flex gap-4">
-                    <a href={`/w/${wig.id}`} className="text-sm underline underline-offset-4">
+                  <span className="flex flex-wrap items-center gap-x-4">
+                    <a href={`/w/${wig.id}`} className="inline-flex min-h-10 items-center text-sm font-medium underline underline-offset-4">
                       View
                     </a>
                     <ShareButton url={`${origin}/w/${wig.id}`} title={`${wig.name} · ${shop.name}`} />
@@ -104,11 +107,11 @@ async function SellerHome() {
             ))}
           </ul>
         )}
-        <Link href="/seller/wigs/new" className={addButton}>
+        <Link href="/seller/wigs/new" className={`${primaryButton} self-start`}>
           Add a wig
         </Link>
       </section>
-      <details className="rounded-md border border-zinc-200 p-4 dark:border-zinc-800">
+      <details className={card}>
         <summary className="cursor-pointer font-medium">Edit shop details</summary>
         <div className="mt-4">
           <ShopForm
@@ -117,7 +120,7 @@ async function SellerHome() {
           />
         </div>
       </details>
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">Signed in as {session.user.email}.</p>
+      <p className="text-sm text-muted">Signed in as {session.user.email}.</p>
       <SignOutButton />
     </>
   );
@@ -125,11 +128,14 @@ async function SellerHome() {
 
 export default function SellerPage() {
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-4 px-4 py-8">
-      <h1 className="text-2xl font-semibold tracking-tight">Your shop</h1>
-      <Suspense fallback={<p className="text-zinc-600 dark:text-zinc-400">Loading…</p>}>
-        <SellerHome />
-      </Suspense>
-    </main>
+    <>
+      <SiteHeader />
+      <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-5 px-4 pt-2 pb-12">
+        <h1 className={pageTitle}>Your shop</h1>
+        <Suspense fallback={<p className="text-muted">Loading…</p>}>
+          <SellerHome />
+        </Suspense>
+      </main>
+    </>
   );
 }
