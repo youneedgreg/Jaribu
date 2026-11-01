@@ -269,7 +269,7 @@ export function TryOn({ wigs, firstWigId, ordersOpen }: { wigs: Wig[]; firstWigI
   return (
     <div className="flex flex-col gap-6">
       {!agreed ? (
-        <Consent wigHref={`/w/${firstWigId}`} onAgree={() => setAgreed(true)} />
+        <Consent onAgree={() => setAgreed(true)} />
       ) : selfie ? (
         <section className="flex flex-col gap-4" aria-label="Your preview">
           <div className="flex items-baseline justify-between gap-4">
