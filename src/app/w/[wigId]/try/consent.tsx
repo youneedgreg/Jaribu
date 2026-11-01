@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { card, primaryButton, sectionTitle } from "@/components/styles";
 
@@ -8,7 +7,7 @@ import { card, primaryButton, sectionTitle } from "@/components/styles";
  * Shown before the camera or the upload opens. The answer stays in the page's state, so it's
  * asked each time the try page opens and nothing about it is saved.
  */
-export function Consent({ wigHref, onAgree }: { wigHref: string; onAgree: () => void }) {
+export function Consent({ onAgree }: { onAgree: () => void }) {
   const [ticked, setTicked] = useState(false);
 
   return (
@@ -54,9 +53,6 @@ export function Consent({ wigHref, onAgree }: { wigHref: string; onAgree: () => 
       >
         Continue
       </button>
-      <Link href={wigHref} className="self-start py-1 text-sm text-muted underline underline-offset-4">
-        Back to the wig
-      </Link>
     </form>
   );
 }

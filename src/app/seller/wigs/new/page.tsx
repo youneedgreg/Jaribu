@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { SiteHeader } from "@/components/site-header";
-import { pageTitle } from "@/components/styles";
+import { backLink, pageTitle } from "@/components/styles";
 import { currentSeller } from "@/lib/seller/current-seller";
 import { shopForOwner } from "@/lib/seller/shop";
 import { WigForm } from "./wig-form";
@@ -23,7 +23,7 @@ export default function NewWigPage() {
       <SiteHeader />
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-5 px-4 pt-2 pb-12">
         <div className="flex flex-col gap-1">
-          <Link href="/seller" className="self-start text-sm font-medium text-accent underline-offset-4 hover:underline">
+          <Link href="/seller" className={`${backLink} self-start`}>
             Back to your shop
           </Link>
           <h1 className={pageTitle}>Add a wig</h1>

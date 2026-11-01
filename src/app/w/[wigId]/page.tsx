@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
-import { pageTitle, primaryButton } from "@/components/styles";
+import { backLink, pageTitle, primaryButton } from "@/components/styles";
 import { DEMO_SHOP, formatKes } from "@/lib/shop/demo";
 import { findWig } from "@/lib/shop/listings";
 
@@ -17,7 +17,11 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps<"/w/[wigId]">): Promise<Metadata> {
   const found = await findWig((await params).wigId);
-  return found ? { title: `${found.wig.name} · ${found.shop.name}` } : {};
+  if (!found) return {};
+  const { wig, shop } = found;
+  const title = `${wig.name} · ${shop.name}`;
+  const description = `${formatKes(wig.priceKes)} · ${wig.length}. ${shop.sample ? "Sample listing, not for sale. " : ""}Try it on your own face before you order.`;
+  return { title, description, openGraph: { title, description, images: [wig.photo] } };
 }
 
 export default async function WigPage({ params }: PageProps<"/w/[wigId]">) {
@@ -27,7 +31,7 @@ export default async function WigPage({ params }: PageProps<"/w/[wigId]">) {
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader wigsHref={`/s/${shop.id}`} />
       <main className="mx-auto grid w-full max-w-4xl flex-1 content-start gap-6 px-4 pt-2 pb-12 sm:px-6 md:grid-cols-2 md:gap-10">
         <figure className="flex flex-col gap-2">
           <Image
@@ -38,7 +42,7 @@ export default async function WigPage({ params }: PageProps<"/w/[wigId]">) {
             sizes="(min-width: 768px) 420px, 100vw"
             preload
             loading="eager"
-            className="max-h-[52svh] w-full rounded-3xl object-cover object-top md:max-h-none"
+            className="max-h-[52svh] w-full rounded-3xl bg-tint object-cover object-top md:max-h-none"
           />
           {wig.credit && (
             <figcaption className="text-xs text-muted">
@@ -52,22 +56,22 @@ export default async function WigPage({ params }: PageProps<"/w/[wigId]">) {
         </figure>
         <div className="flex flex-col gap-5">
           <div className="flex flex-col gap-2">
-            <Link href={`/s/${shop.id}`} className="text-sm font-medium text-accent underline-offset-4 hover:underline">
+            <Link href={`/s/${shop.id}`} className={backLink}>
               {shop.name}
             </Link>
             <h1 className={pageTitle}>{wig.name}</h1>
             <p className="text-xl font-medium">{formatKes(wig.priceKes)}</p>
           </div>
+          <Link href={`/w/${wig.id}/try`} className={primaryButton}>
+            Try it on
+          </Link>
+          <p className="text-sm text-muted">The try-on is a preview of how the style may look, not a fit guarantee.</p>
           <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 border-y border-line py-4">
             <dt className="text-muted">Texture</dt>
             <dd>{wig.texture}</dd>
             <dt className="text-muted">Length</dt>
             <dd>{wig.length}</dd>
           </dl>
-          <Link href={`/w/${wig.id}/try`} className={`${primaryButton} sticky bottom-4 shadow-lg md:static md:shadow-none`}>
-            Try it on
-          </Link>
-          <p className="text-sm text-muted">The try-on is a preview of how the style may look, not a fit guarantee.</p>
         </div>
       </main>
     </>

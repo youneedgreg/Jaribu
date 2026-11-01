@@ -18,6 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://tryjaribu.vercel.app"),
   title: "Jaribu",
   description: "Try a wig on your own face and check whether it will blend, before you pay.",
 };

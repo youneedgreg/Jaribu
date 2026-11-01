@@ -17,7 +17,11 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps<"/s/[shopId]">): Promise<Metadata> {
   const shop = await findShop((await params).shopId);
-  return shop ? { title: `${shop.name} · Jaribu` } : {};
+  if (!shop) return {};
+  const title = `${shop.name} · Jaribu`;
+  const description = shop.sample ? "Sample wigs to show how Jaribu works. Not for sale." : "Try any wig on your own face before you order.";
+  const images = shop.wigs.slice(0, 1).map((wig) => wig.photo);
+  return { title, description, openGraph: { title, description, ...(images.length > 0 && { images }) } };
 }
 
 export default async function ShopPage({ params }: PageProps<"/s/[shopId]">) {
@@ -27,7 +31,7 @@ export default async function ShopPage({ params }: PageProps<"/s/[shopId]">) {
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader wigsHref={`/s/${shop.id}`} />
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-4 pt-4 pb-12 sm:px-6">
         <header className="flex flex-col gap-2">
           <h1 className={pageTitle}>{shop.name}</h1>
@@ -64,7 +68,7 @@ export default async function ShopPage({ params }: PageProps<"/s/[shopId]">) {
                       width={wig.photoWidth}
                       height={wig.photoHeight}
                       sizes="(min-width: 768px) 240px, (min-width: 640px) 33vw, 50vw"
-                      className="mb-1 aspect-[3/4] w-full rounded-2xl object-cover"
+                      className="mb-1 aspect-[3/4] w-full rounded-2xl bg-tint object-cover"
                     />
                     <span className="font-medium">{wig.name}</span>
                     <span className="text-sm text-muted">

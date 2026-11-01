@@ -85,7 +85,7 @@ async function SellerHome() {
                   width={wig.photoWidth}
                   height={wig.photoHeight}
                   unoptimized
-                  className="aspect-[3/4] w-20 shrink-0 self-start rounded-xl object-cover"
+                  className="aspect-[3/4] w-20 shrink-0 self-start rounded-xl bg-tint object-cover"
                 />
                 <div className="flex min-w-0 flex-col gap-1">
                   <span className="font-medium">{wig.name}</span>
