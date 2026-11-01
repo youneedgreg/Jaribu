@@ -42,7 +42,7 @@ export function BeforeAfter({
     <div
       ref={frame}
       // pan-y: vertical swipes still scroll the page; sideways drags move the handle.
-      className="relative w-full cursor-ew-resize touch-pan-y select-none overflow-hidden rounded-md bg-zinc-200 dark:bg-zinc-800"
+      className="relative w-full cursor-ew-resize touch-pan-y select-none overflow-hidden rounded-3xl bg-tint"
       style={{ aspectRatio: `${width} / ${height}` }}
       onPointerDown={start}
       onPointerMove={(e) => dragging.current && moveTo(e.clientX)}
@@ -74,13 +74,13 @@ export function BeforeAfter({
         className="pointer-events-none absolute inset-y-0 -ml-px w-0.5 bg-white shadow-[0_0_4px_rgba(0,0,0,0.5)]"
         style={{ left: `${position}%` }}
       >
-        <span className="absolute top-1/2 left-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-sm text-zinc-900 shadow">
+        <span className="absolute top-1/2 left-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-sm text-[#2a1622] shadow">
           ⟷
         </span>
       </div>
-      <span className="pointer-events-none absolute inset-0 rounded-md ring-zinc-900 peer-focus-visible:ring-4 dark:ring-zinc-100" />
-      <span className="pointer-events-none absolute top-2 left-2 rounded bg-black/60 px-2 py-0.5 text-xs text-white">Before</span>
-      <span className="pointer-events-none absolute top-2 right-2 rounded bg-black/60 px-2 py-0.5 text-xs text-white">Preview</span>
+      <span className="pointer-events-none absolute inset-0 rounded-3xl ring-primary peer-focus-visible:ring-4" />
+      <span className="pointer-events-none absolute top-3 left-3 rounded-full bg-black/60 px-2.5 py-0.5 text-xs text-white">Before</span>
+      <span className="pointer-events-none absolute top-3 right-3 rounded-full bg-black/60 px-2.5 py-0.5 text-xs text-white">Preview</span>
     </div>
   );
 }

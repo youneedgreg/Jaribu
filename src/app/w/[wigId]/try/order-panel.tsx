@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { card, errorText, primaryButton, sectionTitle } from "@/components/styles";
 import { blend } from "@/lib/checks/blend";
 import { matchLace } from "@/lib/checks/lace";
 import type { Colorway } from "@/lib/shop/catalog";
@@ -29,11 +30,10 @@ type Status =
 
 const errorOf = (body: unknown) => (body as { error?: { message?: string } } | null)?.error;
 
-const button =
-  "rounded-md bg-zinc-900 px-4 py-3 font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900";
-const link = "self-start text-sm text-zinc-600 underline underline-offset-4 disabled:opacity-50 dark:text-zinc-400";
-const choice = "flex items-center gap-2 py-1 text-sm";
-const hint = "text-zinc-600 dark:text-zinc-400";
+const link = "self-start py-1 text-left text-sm text-muted underline underline-offset-4 disabled:opacity-50";
+const choice = "flex min-h-10 flex-wrap items-center gap-x-2 py-1";
+const radio = "h-5 w-5 accent-primary";
+const hint = "text-sm text-muted";
 
 /** Order on WhatsApp: the shopper picks how it's made and the lace, then the seller's chat opens. */
 export function OrderPanel({
@@ -73,9 +73,9 @@ export function OrderPanel({
 
   if (!ordersOpen) {
     return (
-      <section className="flex flex-col gap-2 rounded-md border border-zinc-200 p-4 dark:border-zinc-800">
-        <h3 className="font-medium">Order on WhatsApp</h3>
-        <p className={`text-sm ${hint}`}>
+      <section className={`${card} flex flex-col gap-2`}>
+        <h3 className={sectionTitle}>Order on WhatsApp</h3>
+        <p className={hint}>
           This is a sample shop, so ordering is off. In a seller&apos;s shop, this sends your order to the seller on WhatsApp.
         </p>
       </section>
@@ -146,13 +146,13 @@ export function OrderPanel({
   const missingLace = wig.laceShades.length > 0 && !laceShade;
 
   return (
-    <section className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4 dark:border-zinc-800">
-      <h3 className="font-medium">Order on WhatsApp</h3>
+    <section className={`${card} flex flex-col gap-4`}>
+      <h3 className={sectionTitle}>Order on WhatsApp</h3>
       <fieldset disabled={busy}>
-        <legend className="mb-1 text-sm font-medium">Made as</legend>
+        <legend className="mb-1 font-medium">Made as</legend>
         {wig.constructions.map((c) => (
           <label key={c.id} className={choice}>
-            <input type="radio" name="construction" value={c.id} checked={construction === c.id} onChange={() => setConstructionId(c.id)} />
+            <input type="radio" name="construction" value={c.id} className={radio} checked={construction === c.id} onChange={() => setConstructionId(c.id)} />
             {c.name}
             {c.id === suggestedConstruction?.id && wig.constructions.some((o) => o.leaveOut) && (
               <span className={hint}>(may blend best, from the blend check)</span>
@@ -162,10 +162,10 @@ export function OrderPanel({
       </fieldset>
       {wig.laceShades.length > 0 && (
         <fieldset disabled={busy}>
-          <legend className="mb-1 text-sm font-medium">Lace shade</legend>
+          <legend className="mb-1 font-medium">Lace shade</legend>
           {wig.laceShades.map((l) => (
             <label key={l.id} className={choice}>
-              <input type="radio" name="laceShade" value={l.id} checked={laceShade === l.id} onChange={() => setLaceShadeId(l.id)} />
+              <input type="radio" name="laceShade" value={l.id} className={radio} checked={laceShade === l.id} onChange={() => setLaceShadeId(l.id)} />
               {l.name}
               {l.id === suggestedLace && <span className={hint}>(nearest your skin tone, from the lace match)</span>}
             </label>
@@ -174,21 +174,21 @@ export function OrderPanel({
       )}
       <p className="text-sm">
         Colour: {colorway ? `${colorway.code} ${colorway.name}` : "as in the listing photo"}
-        <span className={hint}> (change it above)</span>
+        <span className="text-muted"> (change it above)</span>
       </p>
-      <p className={`text-sm ${hint}`}>
+      <p className={hint}>
         The seller will see your preview picture through a private link that stops working 24 hours after the picture was made.
       </p>
       {status.step === "share" ? (
-        <button type="button" className={button} onClick={() => void sharePicture(status.file, status.message)}>
+        <button type="button" className={primaryButton} onClick={() => void sharePicture(status.file, status.message)}>
           Share the picture now
         </button>
       ) : (
-        <button type="button" disabled={busy || missingLace} className={button} onClick={() => void order()}>
+        <button type="button" disabled={busy || missingLace} className={primaryButton} onClick={() => void order()}>
           {status.step === "sending" ? "Opening WhatsApp…" : "Order on WhatsApp"}
         </button>
       )}
-      {missingLace && <p className={`text-sm ${hint}`}>Pick a lace shade first.</p>}
+      {missingLace && <p className={hint}>Pick a lace shade first.</p>}
       {status.step === "sent" && (
         <p role="status" className="text-sm">
           Your order is ready in WhatsApp: check the message, then send it.{" "}
@@ -202,7 +202,7 @@ export function OrderPanel({
           Or send the picture itself (you pick the seller&apos;s chat)
         </button>
       )}
-      <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+      <p role="alert" className={errorText}>
         {status.step === "failed" ? status.message : null}
       </p>
     </section>

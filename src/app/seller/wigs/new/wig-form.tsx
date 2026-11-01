@@ -1,23 +1,19 @@
 "use client";
 
-import { startTransition, useActionState, useEffect, useState } from "react";
+import { startTransition, useActionState, useState } from "react";
+import { PhotoPicker } from "@/components/photo-picker";
+import { card, errorText, fieldError, fieldHint as hint, fieldLabel, primaryButton, textInput as input } from "@/components/styles";
 import { COLORS, CONSTRUCTIONS, LACE, TEXTURES } from "@/lib/shop/catalog";
 import { LENGTH_MAX, LENGTH_MIN, NAME_MAX } from "@/lib/seller/wig-fields";
 import { PHOTO_MAX_BYTES, TRYON_MAX_SIDE } from "@/lib/tryon/tryon";
+import { Swatch } from "@/app/w/[wigId]/try/swatch";
 import { addWigAction, type WigFormState } from "../actions";
 
-const input = "rounded-md border border-zinc-300 px-3 py-2 font-normal dark:border-zinc-700 dark:bg-zinc-900";
-const hint = "font-normal text-zinc-600 dark:text-zinc-400";
-const fieldError = "font-normal text-red-700 dark:text-red-400";
-const legend = "mb-1 text-sm font-medium";
-const choice = "flex items-center gap-2 py-1 text-sm";
-const button =
-  "rounded-md bg-zinc-900 px-4 py-3 font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900";
-
-interface Photo {
-  blob: Blob;
-  url: string;
-}
+// Floated so the title sits inside the card, not on its border.
+const legend = "float-left mb-1 w-full font-medium";
+const choice = "flex min-h-10 flex-wrap items-center gap-x-2 py-1";
+const tick = "h-5 w-5 accent-primary";
+const group = `${card} flex flex-col gap-1`;
 
 /** Shrinks a photo to a JPG YouCam takes as a try-on reference: long side ≤ 1024 px, upright, under 2 MB. */
 async function toWigJpeg(file: Blob): Promise<Blob> {
@@ -43,19 +39,16 @@ const empty: WigFormState = {
 /** The add-a-wig form. The photo is shrunk in the browser, then sent with the rest. */
 export function WigForm() {
   const [state, formAction, pending] = useActionState(addWigAction, empty);
-  const [photo, setPhoto] = useState<Photo | null>(null);
+  const [photo, setPhoto] = useState<Blob | null>(null);
   const [photoProblem, setPhotoProblem] = useState<string | null>(null);
   const { values, errors } = state;
 
-  useEffect(() => () => (photo ? URL.revokeObjectURL(photo.url) : undefined), [photo]);
-
-  async function choosePhoto(file: File | undefined) {
+  async function choosePhoto(file: File | null) {
     setPhoto(null);
     setPhotoProblem(null);
     if (!file) return;
     try {
-      const blob = await toWigJpeg(file);
-      setPhoto({ blob, url: URL.createObjectURL(blob) });
+      setPhoto(await toWigJpeg(file));
     } catch {
       setPhotoProblem("We couldn't read that photo. Try a JPG or PNG from your gallery.");
     }
@@ -70,23 +63,13 @@ export function WigForm() {
         if (pending) return;
         const data = new FormData(e.currentTarget);
         data.delete("photoFile");
-        if (photo) data.set("photo", photo.blob, "wig.jpg");
+        if (photo) data.set("photo", photo, "wig.jpg");
         startTransition(() => formAction(data));
       }}
     >
-      <div className="flex flex-col gap-2">
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Front photo
-          <input
-            name="photoFile"
-            type="file"
-            accept="image/*"
-            className="text-sm font-normal"
-            disabled={pending}
-            onChange={(e) => void choosePhoto(e.currentTarget.files?.[0])}
-          />
-          {(photoProblem || errors.photo) && <span className={fieldError}>{photoProblem ?? errors.photo}</span>}
-        </label>
+      <div className={`${card} flex flex-col gap-3`}>
+        <PhotoPicker name="photoFile" label="Front photo" disabled={pending} onPick={(file) => void choosePhoto(file)} />
+        {(photoProblem || errors.photo) && <p className={`text-sm ${fieldError}`}>{photoProblem ?? errors.photo}</p>}
         <div className={`flex flex-col gap-1 text-sm ${hint}`}>
           <p>Shoppers&apos; previews are made from this photo. A poor one can put the model&apos;s face on the shopper, so use:</p>
           <ul className="list-disc pl-5">
@@ -96,42 +79,38 @@ export function WigForm() {
           </ul>
           <p>Then try it on yourself before you share the link.</p>
         </div>
-        {photo && (
-          // A local preview of the shrunk photo; next/image can't show blob: URLs.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={photo.url} alt="The wig photo you picked" className="max-h-64 self-start rounded-md object-contain" />
-        )}
       </div>
 
-      <label className="flex flex-col gap-1 text-sm font-medium">
-        Name
-        <input name="name" type="text" required maxLength={NAME_MAX} defaultValue={values.name} placeholder="Body wave 22 in" className={input} disabled={pending} />
-        {errors.name && <span className={fieldError}>{errors.name}</span>}
-      </label>
+      <div className={`${card} flex flex-col gap-4`}>
+        <label className={fieldLabel}>
+          Name
+          <input name="name" type="text" required maxLength={NAME_MAX} defaultValue={values.name} placeholder="Body wave 22 in" className={input} disabled={pending} />
+          {errors.name && <span className={fieldError}>{errors.name}</span>}
+        </label>
 
-      <div className="grid grid-cols-2 gap-4">
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Price (KES)
-          <input name="price" type="text" inputMode="numeric" required defaultValue={values.price} placeholder="16000" className={input} disabled={pending} />
-          {errors.price && <span className={fieldError}>{errors.price}</span>}
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Length (inches)
-          <input
-            name="length"
-            type="text"
-            inputMode="numeric"
-            required
-            defaultValue={values.length}
-            placeholder={`${LENGTH_MIN}–${LENGTH_MAX}`}
-            className={input}
-            disabled={pending}
-          />
-          {errors.length && <span className={fieldError}>{errors.length}</span>}
-        </label>
+        <div className="grid grid-cols-2 gap-4">
+          <label className={fieldLabel}>
+            Price (KES)
+            <input name="price" type="text" inputMode="numeric" required defaultValue={values.price} placeholder="16000" className={input} disabled={pending} />
+            {errors.price && <span className={fieldError}>{errors.price}</span>}
+          </label>
+          <label className={fieldLabel}>
+            Length (inches)
+            <input
+              name="length"
+              type="text"
+              inputMode="numeric"
+              required
+              defaultValue={values.length}
+              placeholder={`${LENGTH_MIN}–${LENGTH_MAX}`}
+              className={input}
+              disabled={pending}
+            />
+            {errors.length && <span className={fieldError}>{errors.length}</span>}
+          </label>
       </div>
 
-      <label className="flex flex-col gap-1 text-sm font-medium">
+      <label className={fieldLabel}>
         Texture
         <select name="texture" required defaultValue={values.texture} className={input} disabled={pending}>
           <option value="" disabled>
@@ -149,12 +128,13 @@ export function WigForm() {
           <span className={hint}>The blend check compares it with the shopper&apos;s own hair.</span>
         )}
       </label>
+      </div>
 
-      <fieldset disabled={pending}>
+      <fieldset disabled={pending} className={group}>
         <legend className={legend}>How it&apos;s made (tick all you offer)</legend>
         {Object.values(CONSTRUCTIONS).map((c) => (
           <label key={c.id} className={choice}>
-            <input type="checkbox" name="constructions" value={c.id} defaultChecked={values.constructions.includes(c.id)} />
+            <input type="checkbox" name="constructions" value={c.id} defaultChecked={values.constructions.includes(c.id)} className={tick} />
             {c.name}
             {c.leaveOut && <span className={hint}>(some of the shopper&apos;s own hair shows)</span>}
           </label>
@@ -162,12 +142,12 @@ export function WigForm() {
         {errors.constructions && <p className={`text-sm ${fieldError}`}>{errors.constructions}</p>}
       </fieldset>
 
-      <fieldset disabled={pending}>
+      <fieldset disabled={pending} className={group}>
         <legend className={legend}>Colours you sell it in</legend>
         {Object.values(COLORS).map((c) => (
           <label key={c.id} className={choice}>
-            <input type="checkbox" name="colorways" value={c.id} defaultChecked={values.colorways.includes(c.id)} />
-            <span aria-hidden className="size-4 rounded-full border border-zinc-300 dark:border-zinc-700" style={{ backgroundColor: c.hex }} />
+            <input type="checkbox" name="colorways" value={c.id} defaultChecked={values.colorways.includes(c.id)} className={tick} />
+            <Swatch hex={c.hex} className="h-4 w-4" />
             {c.code} · {c.name}
           </label>
         ))}
@@ -178,12 +158,12 @@ export function WigForm() {
         )}
       </fieldset>
 
-      <fieldset disabled={pending}>
+      <fieldset disabled={pending} className={group}>
         <legend className={legend}>Lace shades</legend>
         {Object.values(LACE).map((l) => (
           <label key={l.id} className={choice}>
-            <input type="checkbox" name="laceShades" value={l.id} defaultChecked={values.laceShades.includes(l.id)} />
-            <span aria-hidden className="size-4 rounded-full border border-zinc-300 dark:border-zinc-700" style={{ backgroundColor: l.hex }} />
+            <input type="checkbox" name="laceShades" value={l.id} defaultChecked={values.laceShades.includes(l.id)} className={tick} />
+            <Swatch hex={l.hex} className="h-4 w-4" />
             {l.name}
           </label>
         ))}
@@ -194,10 +174,10 @@ export function WigForm() {
         )}
       </fieldset>
 
-      <button type="submit" disabled={pending} className={button}>
+      <button type="submit" disabled={pending} className={primaryButton}>
         {pending ? "Adding the wig…" : "Add the wig"}
       </button>
-      <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+      <p role="alert" className={errorText}>
         {state.message}
       </p>
     </form>

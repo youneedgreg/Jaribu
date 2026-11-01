@@ -1,4 +1,5 @@
 import { failure, json, logError } from "@/lib/http";
+import { recordTryOn } from "@/lib/seller/stats";
 import { limitMessage, reachedLimit, taskTicket } from "@/lib/session";
 import { currentOrNewSession, recordUsage, usageOf } from "@/lib/session-cookie";
 import { findWig } from "@/lib/shop/listings";
@@ -48,6 +49,8 @@ export async function POST(request: Request) {
     if (reachedLimit(usage, "hairstyle")) return failure(429, "limit", limitMessage("hairstyle"));
     const taskId = await startTryOn(youcam(), selfie, await readWigPhoto(wig));
     await recordUsage(session, usage, "hairstyle");
+    // The shopper's preview matters more than the seller's number.
+    await recordTryOn(wig.id).catch((error) => logError("tryon/count", error));
     return json({ taskId, ticket: taskTicket("hairstyle", session.id, taskId, process.env.SESSION_SECRET) });
   } catch (error) {
     logError("tryon/start", error);

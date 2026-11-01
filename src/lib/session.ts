@@ -76,37 +76,40 @@ export function taskTicketMatches(
   return given.length === expected.length && timingSafeEqual(given, expected);
 }
 
-// A limit on what one session can start, so one visit can't use up the units. The count lives in
-// a signed cookie, so it can't be edited, but clearing cookies starts over: the unit reserve in
-// youcam/server.ts is what actually protects the balance. Tone and hair type are already once per session.
+// A limit on what one session can do, so one visit can't use up the units or fill a seller's stats
+// with repeat taps. The count lives in a signed cookie, so it can't be edited, but clearing cookies
+// starts over: the unit reserve in youcam/server.ts is what actually protects the balance. Tone and
+// hair type are already once per session.
 
 export const USAGE_COOKIE = "jaribu_usage";
-export const SESSION_LIMITS = { hairstyle: 10, haircolor: 12 } as const;
+export const SESSION_LIMITS = { hairstyle: 10, haircolor: 12, order: 5 } as const;
 
-export type LimitedApi = keyof typeof SESSION_LIMITS;
-export type Usage = Record<LimitedApi, number>;
+export type LimitedAction = keyof typeof SESSION_LIMITS;
+export type Usage = Record<LimitedAction, number>;
 
 export function encodeUsage(sessionId: string, usage: Usage, secret: string | undefined): string {
-  const payload = `${usage.hairstyle}.${usage.haircolor}`;
+  const payload = `${usage.hairstyle}.${usage.haircolor}.${usage.order}`;
   return `${payload}.${sign(`usage.${sessionId}.${payload}`, checkSecret(secret))}`;
 }
 
 /** The session's counts, or zero if the cookie is missing, forged or from another session. */
 export function decodeUsage(value: string | undefined, sessionId: string, secret: string | undefined): Usage {
-  const none = { hairstyle: 0, haircolor: 0 };
-  const match = value?.match(/^(\d{1,4})\.(\d{1,4})\.([A-Za-z0-9_-]{43})$/);
+  const none = { hairstyle: 0, haircolor: 0, order: 0 };
+  const match = value?.match(/^(\d{1,4})\.(\d{1,4})\.(\d{1,4})\.([A-Za-z0-9_-]{43})$/);
   if (!match) return none;
-  const [, hairstyle, haircolor, signature] = match;
-  const expected = Buffer.from(sign(`usage.${sessionId}.${hairstyle}.${haircolor}`, checkSecret(secret)));
+  const [, hairstyle, haircolor, order, signature] = match;
+  const expected = Buffer.from(sign(`usage.${sessionId}.${hairstyle}.${haircolor}.${order}`, checkSecret(secret)));
   if (!timingSafeEqual(Buffer.from(signature), expected)) return none;
-  return { hairstyle: Number(hairstyle), haircolor: Number(haircolor) };
+  return { hairstyle: Number(hairstyle), haircolor: Number(haircolor), order: Number(order) };
 }
 
-export const countUsage = (usage: Usage, api: LimitedApi): Usage => ({ ...usage, [api]: usage[api] + 1 });
-export const reachedLimit = (usage: Usage, api: LimitedApi) => usage[api] >= SESSION_LIMITS[api];
+export const countUsage = (usage: Usage, action: LimitedAction): Usage => ({ ...usage, [action]: usage[action] + 1 });
+export const reachedLimit = (usage: Usage, action: LimitedAction) => usage[action] >= SESSION_LIMITS[action];
 
-export function limitMessage(api: LimitedApi): string {
-  return api === "hairstyle"
-    ? `You've tried ${SESSION_LIMITS.hairstyle} wigs on this visit, which is the most we can show. Please come back tomorrow to try more.`
-    : `You've tried ${SESSION_LIMITS.haircolor} colours on this visit, which is the most we can show. Please come back tomorrow to try more.`;
-}
+const LIMIT_MESSAGES: Record<LimitedAction, string> = {
+  hairstyle: `You've tried ${SESSION_LIMITS.hairstyle} wigs on this visit, which is the most we can show. Please come back tomorrow to try more.`,
+  haircolor: `You've tried ${SESSION_LIMITS.haircolor} colours on this visit, which is the most we can show. Please come back tomorrow to try more.`,
+  order: `You've started ${SESSION_LIMITS.order} orders on this visit, which is the most we can take. Any you sent are in your WhatsApp chat with the seller. Please come back tomorrow to order more.`,
+};
+
+export const limitMessage = (action: LimitedAction) => LIMIT_MESSAGES[action];

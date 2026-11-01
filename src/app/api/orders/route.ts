@@ -3,8 +3,8 @@ import { checkOrderChoice, orderMessage, whatsappLink } from "@/lib/orders/order
 import { saveOrder } from "@/lib/orders/store";
 import { isSafeId } from "@/lib/results/store";
 import { results } from "@/lib/results/server";
-import { taskTicketMatches } from "@/lib/session";
-import { currentSession } from "@/lib/session-cookie";
+import { limitMessage, reachedLimit, taskTicketMatches } from "@/lib/session";
+import { currentSession, recordUsage, usageOf } from "@/lib/session-cookie";
 import { findWig } from "@/lib/shop/listings";
 
 // Saves a WhatsApp order for the preview the shopper is looking at: JSON `{ wigId, taskId,
@@ -26,6 +26,9 @@ export async function POST(request: Request) {
   }
 
   try {
+    const usage = await usageOf(session);
+    if (reachedLimit(usage, "order")) return failure(429, "limit", limitMessage("order"));
+
     const found = await findWig(text(body?.wigId) ?? "");
     if (!found) return failure(404, "no_wig", "We couldn't find that wig.");
     const { wig, shop } = found;
@@ -47,6 +50,7 @@ export async function POST(request: Request) {
     await opened.stream.cancel();
 
     const orderId = await saveOrder({ wigId: wig.id, ...choice, sessionId: session.id, resultTaskId: taskId });
+    await recordUsage(session, usage, "order");
     const cardUrl = `${new URL(request.url).origin}/o/${orderId}`;
     const message = orderMessage(shop.name, wig, check.spec, cardUrl);
     return json({ orderId, cardUrl, message, whatsappUrl: whatsappLink(shop.whatsapp, message) });
