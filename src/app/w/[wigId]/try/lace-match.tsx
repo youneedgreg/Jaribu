@@ -1,5 +1,6 @@
 "use client";
 
+import { card, errorText, secondaryButton, sectionTitle } from "@/components/styles";
 import { matchLace, type LaceShade } from "@/lib/checks/lace";
 import { centerCrop, fitWithin } from "@/lib/images/crop";
 import { Swatch } from "./swatch";
@@ -45,11 +46,11 @@ export function LaceMatch({
   disabled: boolean;
 }) {
   const match = tone.step === "done" ? matchLace(tone.skinHex, shades) : null;
-  const muted = "text-sm text-zinc-600 dark:text-zinc-400";
+  const muted = "text-sm text-muted";
 
   return (
-    <section aria-label="Lace match" className="flex flex-col gap-2 rounded-md border border-zinc-300 p-3 dark:border-zinc-700">
-      <h3 className="text-sm font-medium">Lace match</h3>
+    <section aria-label="Lace match" className={`${card} flex flex-col gap-3`}>
+      <h3 className={sectionTitle}>Lace match</h3>
 
       {!hasCloseUp ? (
         <p className={muted}>The lace match needs the close-up from the guided camera. Take the photos with the camera to see it.</p>
@@ -57,7 +58,7 @@ export function LaceMatch({
         <>
           <p className={muted}>Checks which of this wig&apos;s lace shades is nearest your skin, using your face close-up.</p>
           {tone.step === "failed" && (
-            <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+            <p role="alert" className={errorText}>
               {tone.message}
             </p>
           )}
@@ -65,7 +66,7 @@ export function LaceMatch({
             type="button"
             disabled={disabled}
             onClick={onCheck}
-            className="self-start rounded-md border border-zinc-900 px-3 py-2 text-sm font-medium disabled:opacity-50 dark:border-zinc-100"
+            className={`${secondaryButton} self-start`}
           >
             {tone.step === "failed" ? "Try the lace match again" : "Check the lace match"}
           </button>

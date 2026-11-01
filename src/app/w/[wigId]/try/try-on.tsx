@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { PhotoPicker } from "@/components/photo-picker";
+import { card, errorText, primaryButton, sectionTitle } from "@/components/styles";
 import { capture, CameraKitError, hairShots, loadCameraKit, type HairShots, type Shot } from "@/lib/camera-kit/camera-kit";
 import { lightness } from "@/lib/checks/lace";
 import { formatKes, type Wig } from "@/lib/shop/demo";
@@ -256,13 +258,11 @@ export function TryOn({ wigs, firstWigId, ordersOpen }: { wigs: Wig[]; firstWigI
   }
 
   const busy = state.step === "working";
-  const button =
-    "rounded-md bg-zinc-900 px-4 py-3 font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900";
-  const link = "self-start text-sm text-zinc-600 underline underline-offset-4 disabled:opacity-50 dark:text-zinc-400";
+  const link = "self-start py-1 text-sm text-muted underline underline-offset-4 disabled:opacity-50";
   const status = (
-    <p role="status" aria-live="polite" className="text-sm">
+    <p role="status" aria-live="polite" className="text-sm empty:hidden">
       {state.step === "working" && state.label}
-      {state.step === "failed" && <span className="text-red-700 dark:text-red-400">{state.message}</span>}
+      {state.step === "failed" && <span className={errorText}>{state.message}</span>}
     </p>
   );
 
@@ -271,13 +271,13 @@ export function TryOn({ wigs, firstWigId, ordersOpen }: { wigs: Wig[]; firstWigI
       {!agreed ? (
         <Consent wigHref={`/w/${firstWigId}`} onAgree={() => setAgreed(true)} />
       ) : selfie ? (
-        <section className="flex flex-col gap-3" aria-label="Your preview">
+        <section className="flex flex-col gap-4" aria-label="Your preview">
           <div className="flex items-baseline justify-between gap-4">
-            <h2 className="text-lg font-semibold">{wig.name}</h2>
+            <h2 className={sectionTitle}>{wig.name}</h2>
             <p className="font-medium">{formatKes(wig.priceKes)}</p>
           </div>
 
-          <div className="relative overflow-hidden rounded-md" style={{ aspectRatio: `${selfie.width} / ${selfie.height}` }}>
+          <div className="relative overflow-hidden rounded-3xl" style={{ aspectRatio: `${selfie.width} / ${selfie.height}` }}>
             {shown ? (
               <BeforeAfter
                 before={selfie.url}
@@ -301,7 +301,7 @@ export function TryOn({ wigs, firstWigId, ordersOpen }: { wigs: Wig[]; firstWigI
           </div>
 
           {result && (
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            <p className="text-sm text-muted">
               Preview: how the style may look, not a fit guarantee. Drag across the photo to compare.
             </p>
           )}
@@ -311,7 +311,7 @@ export function TryOn({ wigs, firstWigId, ordersOpen }: { wigs: Wig[]; firstWigI
 
           {result && (
             <div className="flex flex-col gap-2">
-              <h3 className="text-sm font-medium">Colour</h3>
+              <h3 className="font-medium">Colour</h3>
               <ul className="flex flex-wrap gap-2">
                 {[null, ...wig.colorways].map((c) => (
                   <li key={c?.id ?? "photo"}>
@@ -320,10 +320,10 @@ export function TryOn({ wigs, firstWigId, ordersOpen }: { wigs: Wig[]; firstWigI
                       disabled={busy}
                       aria-pressed={(c?.id ?? null) === colorwayId}
                       onClick={() => void showColorway(c?.id ?? null)}
-                      className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm disabled:opacity-50 ${
+                      className={`flex min-h-10 items-center gap-2 rounded-full border bg-card px-3 text-sm disabled:opacity-50 ${
                         (c?.id ?? null) === colorwayId
-                          ? "border-zinc-900 ring-1 ring-zinc-900 dark:border-zinc-100 dark:ring-zinc-100"
-                          : "border-zinc-300 dark:border-zinc-700"
+                          ? "border-primary font-medium ring-1 ring-primary"
+                          : "border-line"
                       }`}
                     >
                       {c && <Swatch hex={c.hex} className="h-4 w-4" />}
@@ -333,7 +333,7 @@ export function TryOn({ wigs, firstWigId, ordersOpen }: { wigs: Wig[]; firstWigI
                 ))}
               </ul>
               {colorway && (
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                <p className="text-sm text-muted">
                   Colours look different on every screen. Ask the seller for a daylight photo of {colorway.code} before you order.
                 </p>
               )}
@@ -377,35 +377,35 @@ export function TryOn({ wigs, firstWigId, ordersOpen }: { wigs: Wig[]; firstWigI
 
           {state.step === "failed" && (
             <div className="flex flex-col gap-2">
-              <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+              <p role="alert" className={errorText}>
                 {state.message}
               </p>
-              <button type="button" className={button} onClick={state.retry ?? (() => void tryWig(wig.id))}>
+              <button type="button" className={primaryButton} onClick={state.retry ?? (() => void tryWig(wig.id))}>
                 Try again
               </button>
             </div>
           )}
 
           <div className="flex flex-col gap-2 pt-2">
-            <h3 className="text-sm font-medium">Try another wig with the same photo</h3>
-            <ul className="grid grid-cols-4 gap-2">
+            <h3 className="font-medium">Try another wig with the same photo</h3>
+            <ul className="-mx-4 flex snap-x scroll-pl-4 gap-3 overflow-x-auto px-4 pt-1 pb-2">
               {wigs.map((w) => (
-                <li key={w.id}>
+                <li key={w.id} className="w-24 shrink-0 snap-start">
                   <button
                     type="button"
                     disabled={busy}
                     aria-pressed={w.id === wig.id}
                     onClick={() => void tryWig(w.id)}
-                    className="flex w-full flex-col gap-1 text-left text-xs disabled:opacity-50"
+                    className="flex w-full flex-col gap-1 text-left text-sm disabled:opacity-50"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={w.photo}
                       alt=""
-                      className={`aspect-[3/4] w-full rounded object-cover ${w.id === wig.id ? "ring-2 ring-zinc-900 dark:ring-zinc-100" : ""}`}
+                      className={`aspect-[3/4] w-full rounded-xl object-cover ${w.id === wig.id ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}
                     />
                     <span>{w.name}</span>
-                    {results[w.id] && w.id !== wig.id && <span className="text-zinc-500">Tried</span>}
+                    {results[w.id] && w.id !== wig.id && <span className="text-xs text-muted">Tried</span>}
                   </button>
                 </li>
               ))}
@@ -417,13 +417,14 @@ export function TryOn({ wigs, firstWigId, ordersOpen }: { wigs: Wig[]; firstWigI
           </button>
         </section>
       ) : mode === "camera" ? (
-        <div className="flex flex-col gap-4">
-          <ol className="list-decimal pl-5 text-sm text-zinc-600 dark:text-zinc-400">
+        <div className={`${card} flex flex-col gap-4`}>
+          <h2 className={sectionTitle}>Take your photos</h2>
+          <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm text-muted">
             <li>Let your hair down, in daylight if you can.</li>
             <li>Hold the phone at arm&apos;s length so your shoulders and some space above your hair show.</li>
             <li>The camera takes three photos: facing it, turned right, turned left. Then a close-up of your face.</li>
           </ol>
-          <button type="button" disabled={busy} className={button} onClick={() => void startCamera()}>
+          <button type="button" disabled={busy} className={primaryButton} onClick={() => void startCamera()}>
             {state.step === "working" ? "Working…" : `Try on ${wig.name}`}
           </button>
           <button type="button" disabled={busy} className={link} onClick={() => setMode("upload")}>
@@ -433,7 +434,7 @@ export function TryOn({ wigs, firstWigId, ordersOpen }: { wigs: Wig[]; firstWigI
         </div>
       ) : (
         <form
-          className="flex flex-col gap-4"
+          className={`${card} flex flex-col gap-4`}
           onSubmit={(e) => {
             e.preventDefault();
             const file = new FormData(e.currentTarget).get("selfie");
@@ -442,12 +443,9 @@ export function TryOn({ wigs, firstWigId, ordersOpen }: { wigs: Wig[]; firstWigI
             void takePhoto(file);
           }}
         >
-          {cameraNote && <p className="text-sm text-amber-800 dark:text-amber-300">{cameraNote}</p>}
-          <label className="flex flex-col gap-1 text-sm font-medium">
-            Your photo: face forward, shoulders showing, some space above your hair
-            <input name="selfie" type="file" accept="image/*" className="text-sm font-normal" disabled={busy} />
-          </label>
-          <button type="submit" disabled={busy} className={button}>
+          {cameraNote && <p className="rounded-xl bg-tint p-3 text-sm">{cameraNote}</p>}
+          <PhotoPicker name="selfie" label="Your photo: face forward, shoulders showing, some space above your hair" disabled={busy} />
+          <button type="submit" disabled={busy} className={primaryButton}>
             {state.step === "working" ? "Working…" : `Try on ${wig.name}`}
           </button>
           <button
@@ -526,7 +524,7 @@ function CaptureDetails({
   }, [captures]);
 
   return (
-    <section className="flex flex-col gap-2 rounded-md border border-dashed border-zinc-400 p-3 text-xs">
+    <section className="flex flex-col gap-2 rounded-xl border border-dashed border-line p-3 text-xs">
       <h2 className="font-semibold">Capture details (testing only, nothing here is uploaded)</h2>
       <p>Hair type photos the same size: {captures.hair.sameSize ? "yes" : "no"}</p>
       {result && (
@@ -553,7 +551,7 @@ function CaptureDetails({
         <figure key={row.label} className="flex flex-col gap-1">
           <figcaption>{row.text}</figcaption>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={row.url} alt={`${row.label} capture`} className="w-full rounded border border-zinc-300" />
+          <img src={row.url} alt={`${row.label} capture`} className="w-full rounded border border-line" />
         </figure>
       ))}
     </section>

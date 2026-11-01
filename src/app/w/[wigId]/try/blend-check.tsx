@@ -1,5 +1,6 @@
 "use client";
 
+import { card, errorText, secondaryButton, sectionTitle } from "@/components/styles";
 import { blend, type Construction, type TextureRange } from "@/lib/checks/blend";
 import { fitWithin, HAIR_MAX_SIDE } from "@/lib/images/crop";
 import type { HairShots } from "@/lib/camera-kit/camera-kit";
@@ -56,11 +57,11 @@ export function BlendCheck({
   onCheck: () => void;
   disabled: boolean;
 }) {
-  const muted = "text-sm text-zinc-600 dark:text-zinc-400";
+  const muted = "text-sm text-muted";
 
   return (
-    <section aria-label="Blend check" className="flex flex-col gap-2 rounded-md border border-zinc-300 p-3 dark:border-zinc-700">
-      <h3 className="text-sm font-medium">Blend check</h3>
+    <section aria-label="Blend check" className={`${card} flex flex-col gap-3`}>
+      <h3 className={sectionTitle}>Blend check</h3>
 
       {!hasPhotos ? (
         <p className={muted}>The blend check needs the three photos from the guided camera. Take the photos with the camera to see it.</p>
@@ -68,7 +69,7 @@ export function BlendCheck({
         <>
           <p className={muted}>Checks whether this wig may blend with your own hair, using your three photos.</p>
           {hair.step === "failed" && (
-            <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+            <p role="alert" className={errorText}>
               {hair.message}
             </p>
           )}
@@ -76,7 +77,7 @@ export function BlendCheck({
             type="button"
             disabled={disabled}
             onClick={onCheck}
-            className="self-start rounded-md border border-zinc-900 px-3 py-2 text-sm font-medium disabled:opacity-50 dark:border-zinc-100"
+            className={`${secondaryButton} self-start`}
           >
             {hair.step === "failed" ? "Try the blend check again" : "Check the blend"}
           </button>
