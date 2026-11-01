@@ -27,7 +27,7 @@ export default async function ShopPage({ params }: PageProps<"/s/[shopId]">) {
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader wigsHref={`/s/${shop.id}`} />
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-4 pt-4 pb-12 sm:px-6">
         <header className="flex flex-col gap-2">
           <h1 className={pageTitle}>{shop.name}</h1>

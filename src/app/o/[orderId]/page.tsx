@@ -31,7 +31,7 @@ export default async function OrderCardPage({ params }: PageProps<"/o/[orderId]"
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader wigsHref={`/s/${shop.id}`} />
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-5 px-4 pt-2 pb-12">
         <header className="flex flex-col gap-1">
           <p className="text-sm font-medium text-accent">Order for {shop.name}</p>

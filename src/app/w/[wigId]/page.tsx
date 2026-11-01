@@ -27,7 +27,7 @@ export default async function WigPage({ params }: PageProps<"/w/[wigId]">) {
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader wigsHref={`/s/${shop.id}`} />
       <main className="mx-auto grid w-full max-w-4xl flex-1 content-start gap-6 px-4 pt-2 pb-12 sm:px-6 md:grid-cols-2 md:gap-10">
         <figure className="flex flex-col gap-2">
           <Image
