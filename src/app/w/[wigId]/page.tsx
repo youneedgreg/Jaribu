@@ -62,16 +62,16 @@ export default async function WigPage({ params }: PageProps<"/w/[wigId]">) {
             <h1 className={pageTitle}>{wig.name}</h1>
             <p className="text-xl font-medium">{formatKes(wig.priceKes)}</p>
           </div>
+          <Link href={`/w/${wig.id}/try`} className={primaryButton}>
+            Try it on
+          </Link>
+          <p className="text-sm text-muted">The try-on is a preview of how the style may look, not a fit guarantee.</p>
           <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 border-y border-line py-4">
             <dt className="text-muted">Texture</dt>
             <dd>{wig.texture}</dd>
             <dt className="text-muted">Length</dt>
             <dd>{wig.length}</dd>
           </dl>
-          <Link href={`/w/${wig.id}/try`} className={`${primaryButton} sticky bottom-4 shadow-lg md:static md:shadow-none`}>
-            Try it on
-          </Link>
-          <p className="text-sm text-muted">The try-on is a preview of how the style may look, not a fit guarantee.</p>
         </div>
       </main>
     </>
