@@ -7,6 +7,8 @@ import { Suspense } from "react";
 import { currentSeller } from "@/lib/seller/current-seller";
 import { shopForOwner } from "@/lib/seller/shop";
 import { formatWhatsapp } from "@/lib/seller/shop-fields";
+import { statsForShop } from "@/lib/seller/stats";
+import { statsLine } from "@/lib/seller/stats-line";
 import { wigsForShop } from "@/lib/seller/wigs";
 import { byId, TEXTURES } from "@/lib/shop/catalog";
 import { formatKes } from "@/lib/shop/demo";
@@ -42,7 +44,7 @@ async function SellerHome() {
     );
   }
 
-  const wigs = await wigsForShop(shop.id);
+  const [wigs, stats] = await Promise.all([wigsForShop(shop.id), statsForShop(shop.id)]);
 
   return (
     <>
@@ -86,6 +88,9 @@ async function SellerHome() {
                   <span className="font-medium">{wig.name}</span>
                   <span className="text-sm text-zinc-600 dark:text-zinc-400">
                     {formatKes(wig.priceKes)} · {wig.lengthIn} in · {byId(TEXTURES, wig.texture)?.name}
+                  </span>
+                  <span className="text-sm text-zinc-600 dark:text-zinc-400">
+                    {statsLine(stats.get(wig.id) ?? { tryons: 0, orders: 0 })}
                   </span>
                   <span className="flex gap-4">
                     <a href={`/w/${wig.id}`} className="text-sm underline underline-offset-4">
