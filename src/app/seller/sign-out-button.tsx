@@ -1,27 +1,19 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { textLink } from "@/components/styles";
-import { authClient } from "@/lib/auth-client";
+import { errorText, secondaryButton } from "@/components/styles";
+import { useSignOut } from "@/lib/seller/use-sign-out";
 
 export function SignOutButton() {
-  const router = useRouter();
-  const [busy, setBusy] = useState(false);
+  const { busy, error, signOut } = useSignOut();
 
   return (
-    <button
-      type="button"
-      disabled={busy}
-      className={textLink}
-      onClick={async () => {
-        setBusy(true);
-        await authClient.signOut();
-        router.replace("/seller/sign-in");
-        router.refresh();
-      }}
-    >
-      Sign out
-    </button>
+    <>
+      <button type="button" disabled={busy} className={`${secondaryButton} self-start`} onClick={() => void signOut()}>
+        {busy ? "Signing out…" : "Sign out"}
+      </button>
+      <p role="alert" className={errorText}>
+        {error}
+      </p>
+    </>
   );
 }
