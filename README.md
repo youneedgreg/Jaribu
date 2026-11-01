@@ -1,6 +1,6 @@
 # Jaribu
 
-Jaribu (Swahili for "try") is a phone-first web app that puts a seller's wig on your own face, checks whether it may blend with your hair and which lace shade may suit your skin, and then sends your order to the seller on WhatsApp.
+Jaribu (Swahili for "try") is a phone-first web app that puts a seller's wig on your own face, checks whether it may blend with your hair and which lace shade may suit your skin, and then opens WhatsApp with your order ready to send to the seller.
 
 **[Try it live](https://tryjaribu.vercel.app)** · **[Demo shop](https://tryjaribu.vercel.app/s/judge-demo)** · **[How well it works](https://tryjaribu.vercel.app/how-well-it-works)**
 
