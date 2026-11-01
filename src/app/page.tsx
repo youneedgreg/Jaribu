@@ -56,7 +56,7 @@ export default function Home() {
                 height={first.photoHeight}
                 preload
                 sizes="(min-width: 768px) 280px, 58vw"
-                className="h-full w-full rounded-3xl object-cover"
+                className="h-full w-full rounded-3xl bg-tint object-cover"
               />
             </Link>
             {[second, third].map((wig) => (
@@ -67,7 +67,7 @@ export default function Home() {
                   width={wig.photoWidth}
                   height={wig.photoHeight}
                   sizes="(min-width: 768px) 190px, 38vw"
-                  className="aspect-[4/5] w-full rounded-3xl object-cover"
+                  className="aspect-[4/5] w-full rounded-3xl bg-tint object-cover"
                 />
               </Link>
             ))}

@@ -68,7 +68,7 @@ export default async function ShopPage({ params }: PageProps<"/s/[shopId]">) {
                       width={wig.photoWidth}
                       height={wig.photoHeight}
                       sizes="(min-width: 768px) 240px, (min-width: 640px) 33vw, 50vw"
-                      className="mb-1 aspect-[3/4] w-full rounded-2xl object-cover"
+                      className="mb-1 aspect-[3/4] w-full rounded-2xl bg-tint object-cover"
                     />
                     <span className="font-medium">{wig.name}</span>
                     <span className="text-sm text-muted">

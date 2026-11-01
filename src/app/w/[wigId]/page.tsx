@@ -42,7 +42,7 @@ export default async function WigPage({ params }: PageProps<"/w/[wigId]">) {
             sizes="(min-width: 768px) 420px, 100vw"
             preload
             loading="eager"
-            className="max-h-[52svh] w-full rounded-3xl object-cover object-top md:max-h-none"
+            className="max-h-[52svh] w-full rounded-3xl bg-tint object-cover object-top md:max-h-none"
           />
           {wig.credit && (
             <figcaption className="text-xs text-muted">

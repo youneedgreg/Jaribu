@@ -402,7 +402,7 @@ export function TryOn({ wigs, firstWigId, ordersOpen }: { wigs: Wig[]; firstWigI
                     <img
                       src={w.photo}
                       alt=""
-                      className={`aspect-[3/4] w-full rounded-xl object-cover ${w.id === wig.id ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}
+                      className={`aspect-[3/4] w-full rounded-xl bg-tint object-cover ${w.id === wig.id ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}
                     />
                     <span>{w.name}</span>
                     {results[w.id] && w.id !== wig.id && <span className="text-xs text-muted">Tried</span>}

@@ -32,7 +32,7 @@ export default async function TryPage({ params }: PageProps<"/w/[wigId]/try">) {
       <SiteHeader wigsHref={`/s/${shop.id}`} />
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 pt-2 pb-12">
         <header className="flex items-center gap-3">
-          <Image src={wig.photo} alt="" width={wig.photoWidth} height={wig.photoHeight} sizes="56px" className="h-16 w-12 rounded-xl object-cover" />
+          <Image src={wig.photo} alt="" width={wig.photoWidth} height={wig.photoHeight} sizes="56px" className="h-16 w-12 rounded-xl bg-tint object-cover" />
           <div className="flex flex-col gap-0.5">
             <h1 className="font-display text-2xl font-semibold tracking-tight">Try on: {wig.name}</h1>
             <Link href={`/w/${wig.id}`} className={backLink}>
