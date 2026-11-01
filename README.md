@@ -114,7 +114,7 @@ Written with Kenya's Data Protection Act, 2019 in mind. It hasn't had a legal re
 
 ## Run it locally
 
-You need Node 24, Postgres (Docker works), a [YouCam API key](https://yce.perfectcorp.com/ai-api) and a private [Vercel Blob](https://vercel.com/docs/vercel-blob) store. Without the key and the store, the pages and seller side still run, but try-ons won't.
+You need Node 24, Postgres (Docker works), a [YouCam API key](https://yce.perfectcorp.com/ai-api) and a private [Vercel Blob](https://vercel.com/docs/vercel-blob) store. Without the key and the store, the pages, seller sign-up and shop setup still run, but try-ons and adding a wig won't.
 
 **1. Install**
 
