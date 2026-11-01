@@ -21,8 +21,9 @@ const FLAWS = [
   ["Skin can come out different.", "In that mannequin test, the face came out darker than in the original photo and the beard was blurred. That's one result, not a measured rate."],
   ["Colours come out too bright.", "Burgundy (99J) looks vivid magenta, auburn (#30) bright orange and platinum (613) olive gold. Ask the seller for a daylight photo of the colour."],
   ["Hair type misreads braids.", "A photo with box braids read as 2A to 2B, wavy, on both 26 and 30 October. The blend check warns about this."],
-  ["The wig photo carries over.", "The Body wave photo has wind-blown strands, and they appeared on all three test faces. A calm mannequin photo also grew thin stray strands above the head in our own phone test."],
-  ["Big styles can get cut off.", "The Curly afro was cut flat at the top on one face, with little space above the head."],
+  ["The wig photo carries over.", "The Body wave photo has wind-blown strands, and they appeared on all three test faces. A calm mannequin photo also grew thin stray strands above the head in our own phone test. On 1 November, on one AI-generated test face, earrings that face wasn't wearing appeared with Long braids, Sleek long, Full afro and Short natural."],
+  ["Big styles can get cut off.", "The Curly afro was cut flat at the top on one face, with little space above the head. On 1 November the Full afro was cut the same way on another test, with a dark line along the top."],
+  ["Picture edges can show marks.", "On 1 November, a thin line ran along the bottom edge of the Sleek long preview. That's one result, not a measured rate."],
   ["Some previews look drawn.", "In our own phone tests, some results had smoothed skin and painted-looking hair, more than on these test photos."],
 ];
 
