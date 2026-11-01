@@ -1,6 +1,6 @@
 # Jaribu
 
-Jaribu (Swahili for "try") is a phone-first web app that puts a seller's wig on your own face, checks whether it may blend with your hair and which lace shade may suit your skin, and then sends your order to the seller on WhatsApp.
+Jaribu (Swahili for "try") is a phone-first web app that puts a seller's wig on your own face, checks whether it may blend with your hair and which lace shade may suit your skin, and then opens WhatsApp with your order ready to send to the seller.
 
 **[Try it live](https://tryjaribu.vercel.app)** · **[Demo shop](https://tryjaribu.vercel.app/s/judge-demo)** · **[How well it works](https://tryjaribu.vercel.app/how-well-it-works)**
 
@@ -114,7 +114,7 @@ Written with Kenya's Data Protection Act, 2019 in mind. It hasn't had a legal re
 
 ## Run it locally
 
-You need Node 24, Postgres (Docker works), a [YouCam API key](https://yce.perfectcorp.com/ai-api) and a private [Vercel Blob](https://vercel.com/docs/vercel-blob) store. Without the key and the store, the pages and seller side still run, but try-ons won't.
+You need Node 24, Postgres (Docker works), a [YouCam API key](https://yce.perfectcorp.com/ai-api) and a private [Vercel Blob](https://vercel.com/docs/vercel-blob) store. Without the key and the store, the pages, seller sign-up and shop setup still run, but try-ons and adding a wig won't.
 
 **1. Install**
 
