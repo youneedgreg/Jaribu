@@ -17,7 +17,11 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps<"/w/[wigId]">): Promise<Metadata> {
   const found = await findWig((await params).wigId);
-  return found ? { title: `${found.wig.name} · ${found.shop.name}` } : {};
+  if (!found) return {};
+  const { wig, shop } = found;
+  const title = `${wig.name} · ${shop.name}`;
+  const description = `${formatKes(wig.priceKes)} · ${wig.length}. ${shop.sample ? "Sample listing, not for sale. " : ""}Try it on your own face before you order.`;
+  return { title, description, openGraph: { title, description, images: [wig.photo] } };
 }
 
 export default async function WigPage({ params }: PageProps<"/w/[wigId]">) {
