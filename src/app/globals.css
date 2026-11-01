@@ -50,3 +50,18 @@ body {
   color: var(--foreground);
   font-family: var(--font-dm-sans), Arial, Helvetica, sans-serif;
 }
+
+/* Phones have no hover, so every tap target answers when pressed. */
+@layer base {
+  a,
+  button,
+  summary {
+    transition: opacity 120ms;
+  }
+
+  a:active,
+  button:not(:disabled):active,
+  summary:active {
+    opacity: 0.65;
+  }
+}

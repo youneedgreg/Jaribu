@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
-import { pageTitle, primaryButton } from "@/components/styles";
+import { backLink, pageTitle, primaryButton } from "@/components/styles";
 import { DEMO_SHOP, formatKes } from "@/lib/shop/demo";
 import { findWig } from "@/lib/shop/listings";
 
@@ -52,7 +52,7 @@ export default async function WigPage({ params }: PageProps<"/w/[wigId]">) {
         </figure>
         <div className="flex flex-col gap-5">
           <div className="flex flex-col gap-2">
-            <Link href={`/s/${shop.id}`} className="text-sm font-medium text-accent underline-offset-4 hover:underline">
+            <Link href={`/s/${shop.id}`} className={backLink}>
               {shop.name}
             </Link>
             <h1 className={pageTitle}>{wig.name}</h1>

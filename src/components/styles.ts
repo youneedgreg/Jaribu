@@ -12,4 +12,5 @@ export const fieldLabel = "flex flex-col gap-1.5 text-sm font-medium";
 export const fieldHint = "font-normal text-muted";
 export const fieldError = "font-normal text-danger";
 export const textLink = "self-start py-1 text-sm text-muted underline underline-offset-4 disabled:opacity-50";
+export const backLink = "text-sm font-medium text-accent underline underline-offset-4";
 export const errorText = "text-sm font-medium text-danger empty:hidden";

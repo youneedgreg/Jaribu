@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
+import { backLink } from "@/components/styles";
 import { DEMO_SHOP } from "@/lib/shop/demo";
 import { findWig } from "@/lib/shop/listings";
 import { TryOn } from "./try-on";
@@ -34,7 +35,7 @@ export default async function TryPage({ params }: PageProps<"/w/[wigId]/try">) {
           <Image src={wig.photo} alt="" width={wig.photoWidth} height={wig.photoHeight} sizes="56px" className="h-16 w-12 rounded-xl object-cover" />
           <div className="flex flex-col gap-0.5">
             <h1 className="font-display text-2xl font-semibold tracking-tight">Try on: {wig.name}</h1>
-            <Link href={`/w/${wig.id}`} className="text-sm font-medium text-accent underline-offset-4 hover:underline">
+            <Link href={`/w/${wig.id}`} className={backLink}>
               Back to the wig
             </Link>
           </div>
