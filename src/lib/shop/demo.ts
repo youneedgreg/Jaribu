@@ -225,6 +225,13 @@ export const DEMO_SHOP: Shop = {
   ],
 };
 
+/** The wigs grouped by texture, each style where its first wig came and in listing order within it. */
+export function groupByStyle(wigs: Wig[]): { style: string; wigs: Wig[] }[] {
+  const groups = new Map<string, Wig[]>();
+  for (const wig of wigs) groups.set(wig.texture, [...(groups.get(wig.texture) ?? []), wig]);
+  return [...groups].map(([style, list]) => ({ style, wigs: list }));
+}
+
 export function findDemoWig(id: string): Wig | undefined {
   return DEMO_SHOP.wigs.find((wig) => wig.id === id);
 }

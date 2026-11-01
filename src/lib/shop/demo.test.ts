@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { jpegSize } from "../images/jpeg";
 import { checkPhoto } from "../tryon/tryon";
 import { HAIR_BANDS } from "../youcam/hair-type";
-import { DEMO_SHOP, findColorway, findDemoWig, formatKes } from "./demo";
+import { DEMO_SHOP, findColorway, findDemoWig, formatKes, groupByStyle } from "./demo";
 
 describe("demo shop", () => {
   it.each(DEMO_SHOP.wigs.map((w) => [w.id, w] as const))("%s has a photo YouCam will take, at the listed size", (_, wig) => {
@@ -66,5 +66,28 @@ describe("demo shop", () => {
   it("formats prices in shillings", () => {
     expect(formatKes(18500)).toMatch(/18,500/);
     expect(formatKes(18500)).toMatch(/Ksh|KES/);
+  });
+});
+
+describe("groupByStyle", () => {
+  const [straight, wave, secondStraight] = [
+    { ...DEMO_SHOP.wigs[0], id: "a", texture: "Straight" },
+    { ...DEMO_SHOP.wigs[0], id: "b", texture: "Body wave" },
+    { ...DEMO_SHOP.wigs[0], id: "c", texture: "Straight" },
+  ];
+
+  it("keeps the listing order of styles and of the wigs in each", () => {
+    expect(groupByStyle([straight, wave, secondStraight]).map((g) => [g.style, g.wigs.map((w) => w.id)])).toEqual([
+      ["Straight", ["a", "c"]],
+      ["Body wave", ["b"]],
+    ]);
+  });
+
+  it("has no groups for an empty shop", () => {
+    expect(groupByStyle([])).toEqual([]);
+  });
+
+  it("loses no demo wig", () => {
+    expect(groupByStyle(DEMO_SHOP.wigs).flatMap((g) => g.wigs)).toHaveLength(DEMO_SHOP.wigs.length);
   });
 });
