@@ -24,6 +24,7 @@ const FLAWS = [
   ["The wig photo carries over.", "The Body wave photo has wind-blown strands, and they appeared on all three test faces. A calm mannequin photo also grew thin stray strands above the head in our own phone test. On 1 November, on one AI-generated test face, earrings that face wasn't wearing appeared with Long braids, Sleek long, Full afro and Short natural."],
   ["Big styles can get cut off.", "The Curly afro was cut flat at the top on one face, with little space above the head. On 1 November the Full afro was cut the same way on another test, with a dark line along the top."],
   ["Picture edges can show marks.", "On 1 November, a thin line ran along the bottom edge of the Sleek long preview. That's one result, not a measured rate."],
+  ["A shopper's own hair can show.", "On 1 November, some of a person's own hair showed at the bottom of a long wig. That's one result, not a measured rate."],
   ["Some previews look drawn.", "In our own phone tests, some results had smoothed skin and painted-looking hair, more than on these test photos."],
 ];
 
@@ -61,6 +62,13 @@ export default function HowWellItWorksPage() {
           <p className="rounded-2xl bg-tint p-4 text-sm">
             The faces were AI-generated test images, not real people, and no outside testers took part. This shows that the app
             runs and how fast. It doesn&apos;t show how good the previews look on you.
+          </p>
+          <p className="text-sm">
+            On 1 November 2026, two people also ran the flow on their own phones and screen-recorded it. That&apos;s two people, not a
+            study, and their runs aren&apos;t in this table. Every try-on and colour came back with their own face kept. The lace match
+            gave one of them a result and asked the other for a straighter close-up. The blend check asked both for new photos, so it
+            gave no result in these two runs. On 2 November, it ran through real YouCam calls on one of the AI-generated test faces
+            and gave a result, which is the one in the demo video.
           </p>
         </header>
 
