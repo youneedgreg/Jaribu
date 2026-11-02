@@ -81,15 +81,18 @@ On 30 October 2026, 22 tasks ran through the live app and all 22 worked ([every 
 | Hair type | 3 of 3 | 14.3 s | 14.5 s |
 | Skin tone | 1 of 1 | 8.8 s | 8.8 s |
 
-**The faces were AI-generated test images, and no outside testers took part.** This shows the app runs and how fast. It doesn't show how real the previews look to people, or how well the app works across real hair and skin. The blend and lace rules are provisional until wig wearers have checked them.
+**The faces in that test were AI-generated images, and no outside testers took part in it.** It shows the app runs and how fast. It doesn't show how real the previews look to people, or how well the app works across real hair and skin. The blend and lace rules are provisional until wig wearers have checked them.
 
 Five bad photos sent on purpose were refused or failed with a plain message.
+
+On 1 November 2026, two people also ran the flow on their own phones and screen-recorded it. That's two people, not a study, and their runs aren't in the table. Every try-on and colour came back with their own face kept. The lace match gave one of them a result and asked the other for a straighter close-up. The blend check asked both for new photos, so it gave no result in these two runs. On 2 November, the same check ran through real YouCam calls on one of the AI-generated test faces and gave a result, which is the one in the demo video.
 
 Known flaws, seen by looking at the results rather than measured:
 
 - A close-up wig photo with a tilted head can replace the shopper's face. The add-a-wig form asks for calm, front-facing photos, but nothing stops a bad one.
 - Skin can come out different, and some previews look drawn.
-- Colours come out too bright.
+- Colours come out too bright, and platinum blonde came out olive on one person.
+- A shopper's own hair can show at the bottom of a long wig.
 - Hair type misreads box braids as wavy. The blend check warns about this.
 - Stray strands in a wig photo carry over, and big styles can get cut off.
 
